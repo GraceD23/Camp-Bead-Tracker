@@ -207,7 +207,12 @@ select, input[type="text"], input[type="number"]{
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,.35);
-  display:none;
+  display: none;
+
+  /* ✅ critical: stop click-through on iOS */
+  z-index: 999;
+  pointer-events: auto;
+  touch-action: none;
 }
 .backdrop.open{ display:block; }
 
@@ -221,6 +226,9 @@ select, input[type="text"], input[type="number"]{
   transform: translateX(-102%);
   transition: transform .18s ease;
   border-right: 1px solid rgba(0,0,0,.1);
+
+  /* ✅ keep menu above backdrop */
+  z-index: 1000;
 }
 .drawer.open{ transform: translateX(0); }
 
@@ -302,4 +310,5 @@ select, input[type="text"], input[type="number"]{
 .entry .main{
   line-height:1.4;
 }
+
 
