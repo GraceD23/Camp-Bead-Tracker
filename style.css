@@ -1,0 +1,285 @@
+:root{
+  --card-bg: rgba(255,255,255,.72);
+  --card-bd: rgba(0,0,0,.14);
+  --text: #111;
+  --muted: rgba(0,0,0,.65);
+}
+
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 18px;
+  /* Replace this with your painted background later */
+  background: #f2f2f2;
+  background-size: cover;
+  background-position: center;
+}
+
+.container{
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom: 14px;
+}
+
+.hamburger{
+  width:44px;height:44px;
+  border-radius:12px;
+  border:1px solid var(--card-bd);
+  background: var(--card-bg);
+  font-size: 20px;
+  cursor:pointer;
+}
+
+.title{
+  margin:0;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.spacer44{ width:44px;height:44px; }
+
+.card{
+  border:1px solid var(--card-bd);
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.row{
+  display:flex;
+  gap:12px;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
+.field{
+  flex: 1 1 260px;
+}
+
+label{
+  display:block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  opacity: .85;
+}
+
+select, input[type="text"], input[type="number"]{
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  border:1px solid var(--card-bd);
+  background: rgba(255,255,255,.9);
+  font-size: 16px;
+}
+
+.smallNote{
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.timerWrap{
+  margin-top: 14px;
+  text-align:center;
+}
+
+.timer{
+  font-size: 74px;
+  font-weight: 950;
+  letter-spacing: 1px;
+  margin: 10px 0 14px;
+}
+
+.bigStart{
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  border: 1px solid var(--card-bd);
+  background: rgba(255,255,255,.92);
+  font-size: 34px;
+  font-weight: 950;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.controls{
+  display:flex;
+  justify-content:center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.controls button{
+  width: 160px;
+  padding: 14px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--card-bd);
+  background: rgba(255,255,255,.9);
+  cursor:pointer;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.statusLine{
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  min-height: 18px;
+  text-align:center;
+}
+
+.sectionTitle{
+  margin: 14px 0 8px;
+  font-size: 14px;
+  font-weight: 950;
+  opacity: .9;
+}
+
+.list{
+  display:grid;
+  gap: 10px;
+}
+
+.entry{
+  border:1px solid var(--card-bd);
+  background: rgba(255,255,255,.65);
+  border-radius: 14px;
+  padding: 12px;
+  display:flex;
+  justify-content:space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.entry .left{
+  display:grid;
+  gap: 2px;
+}
+.entry .meta{
+  font-size: 12px;
+  color: var(--muted);
+}
+.entry .main{
+  font-weight: 950;
+}
+.entry .right{
+  display:flex;
+  gap: 8px;
+  align-items:center;
+}
+.badge{
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border:1px solid var(--card-bd);
+  background: rgba(255,255,255,.8);
+  white-space: nowrap;
+}
+
+.btnDanger{
+  border:1px solid rgba(200,0,0,.25) !important;
+  background: rgba(255,240,240,.9) !important;
+}
+
+.btn{
+  padding: 12px 12px;
+  border-radius: 14px;
+  border:1px solid var(--card-bd);
+  background: rgba(255,255,255,.9);
+  cursor:pointer;
+  font-weight: 900;
+}
+
+/* Drawer */
+.backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display:none;
+}
+.backdrop.open{ display:block; }
+
+.drawer{
+  position: fixed;
+  top:0; left:0;
+  height:100%;
+  width: 280px;
+  background: rgba(255,255,255,.96);
+  padding: 14px;
+  transform: translateX(-102%);
+  transition: transform .18s ease;
+  border-right: 1px solid rgba(0,0,0,.1);
+}
+.drawer.open{ transform: translateX(0); }
+
+.drawer a{
+  display:block;
+  padding: 12px;
+  border-radius: 14px;
+  text-decoration:none;
+  color: #111;
+  font-weight: 950;
+}
+.drawer a:hover{ background: rgba(0,0,0,.06); }
+
+/* Slide-up sheet for bead count */
+.sheetBackdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.35);
+  display:none;
+}
+.sheetBackdrop.open{ display:block; }
+
+.sheet{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: translateY(105%);
+  transition: transform .2s ease;
+  background: rgba(255,255,255,.96);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  border-top: 1px solid rgba(0,0,0,.12);
+  padding: 14px 16px 18px;
+}
+.sheet.open{ transform: translateY(0); }
+
+.sheetHandle{
+  width: 44px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.18);
+  margin: 6px auto 10px;
+}
+.sheetTitle{
+  text-align:center;
+  font-weight: 950;
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+.sheetRow{
+  display:grid;
+  gap: 10px;
+}
+.sheetBtns{
+  display:flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+.sheetBtns button{
+  flex: 1;
+}
