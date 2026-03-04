@@ -5,155 +5,336 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Analytics</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
-<!-- SIDEBAR BACKDROP -->
-<div class="backdrop" id="backdrop"></div>
+  <!-- SIDEBAR BACKDROP -->
+  <div class="backdrop" id="backdrop" aria-hidden="true"></div>
 
-<!-- SIDEBAR -->
-<aside class="drawer" id="drawer">
+  <!-- SIDEBAR (PNG MENU) -->
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawerEmoji">
+      <img src="assets/emojis.png" alt="">
+    </div>
 
-  <div class="drawerEmoji">
-    <img src="assets/emojis.png" alt="">
-  </div>
+    <nav class="drawerMenu">
+      <a class="drawerBtn" href="index.html"><img src="assets/timer.png" alt="Timer"></a>
+      <a class="drawerBtn" href="entries.html"><img src="assets/entries.png" alt="Entries"></a>
+      <a class="drawerBtn" href="analytics.html"><img src="assets/analytics.png" alt="Analytics"></a>
+      <a class="drawerBtn" href="export.html"><img src="assets/export.png" alt="Export"></a>
+    </nav>
+  </aside>
 
-  <nav class="drawerMenu">
-
-    <a class="drawerBtn" href="index.html">
-      <img src="assets/timer.png" alt="Timer">
-    </a>
-
-    <a class="drawerBtn" href="entries.html">
-      <img src="assets/entries.png" alt="Entries">
-    </a>
-
-    <a class="drawerBtn" href="analytics.html">
-      <img src="assets/analytics.png" alt="Analytics">
-    </a>
-
-    <a class="drawerBtn" href="export.html">
-      <img src="assets/export.png" alt="Export">
-    </a>
-
-  </nav>
-
-</aside>
-
-
-<!-- EVERYTHING ELSE ON THE PAGE -->
-<div class="container">
-
-
-</div>
-
-</body>
-</html>
+  <!-- PAGE CONTENT -->
   <div class="container">
 
     <div class="topbar">
-      <button class="hamburger" id="btnMenu">☰</button>
-      <h1 class="title">Analytics</h1>
+      <!-- menu trigger (simple button; you can swap to flower art later if you want) -->
+      <button class="btn" id="btnMenu" aria-label="Open menu">Menu</button>
+      <h1 class="title" style="margin:0;">Analytics</h1>
       <div class="spacer44"></div>
     </div>
 
-    <div class="backdrop" id="backdrop"></div>
-    <aside class="drawer" id="drawer">
-      <a href="index.html">Timer</a>
-      <a href="entries.html">Entries</a>
-      <a href="analytics.html">Analytics</a>
-      <a href="export.html">Export / Backup</a>
-    </aside>
-
     <div class="card">
-      <label>Year</label>
-      <select id="yearSelect">
-        <option value="">Select year</option>
-      </select>
+      <div class="row">
+        <div class="field">
+          <label for="yearSelect">Year</label>
+          <select id="yearSelect"></select>
+        </div>
 
-      <label style="margin-top:10px;">Order</label>
-      <select id="orderSelect">
-        <option value="__ALL__">All Orders</option>
-      </select>
+        <div class="field">
+          <label for="orderSelect">Order</label>
+          <select id="orderSelect" disabled></select>
+        </div>
+      </div>
+
+      <p class="smallNote" id="summaryNote" style="margin-top:10px;"></p>
     </div>
 
-    <div class="card" style="margin-top:14px;">
-      <div class="sectionTitle">Summary</div>
-      <div id="summary"></div>
+    <div class="card" style="margin-top:12px;">
+      <h2 class="sectionTitle">Total Time by Task (Bar)</h2>
+      <canvas id="chartTime" width="700" height="320" style="width:100%;height:auto;"></canvas>
     </div>
 
-    <div class="card" style="margin-top:14px;">
-      <canvas id="chart"></canvas>
+    <div class="card" style="margin-top:12px;">
+      <h2 class="sectionTitle">Total Beads by Task (Bar)</h2>
+      <canvas id="chartBeads" width="700" height="320" style="width:100%;height:auto;"></canvas>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h2 class="sectionTitle">Sessions by Task (Bar)</h2>
+      <canvas id="chartSessions" width="700" height="320" style="width:100%;height:auto;"></canvas>
     </div>
 
   </div>
 
-<script src="app.js"></script>
-<script>
-initDrawer();
+  <script src="app.js"></script>
+  <script>
+    // -------- drawer wiring (uses your existing app.js function) --------
+    if (typeof initDrawer === "function") initDrawer();
 
-const yearSelect = document.getElementById("yearSelect");
-const orderSelect = document.getElementById("orderSelect");
-const summary = document.getElementById("summary");
-let chart = null;
+    // -------- entry loading: use app.js if available, else fallback --------
+    function getEntriesSafe(){
+      if (typeof loadEntries === "function") return loadEntries();
 
-function populateYears(){
-  const entries = loadEntries();
-  const years = new Set();
-  entries.forEach(e => years.add(getYearFromMMDDYYYY(e.date)));
-  [...years].sort().forEach(y=>{
-    const opt=document.createElement("option");
-    opt.value=y; opt.textContent=y;
-    yearSelect.appendChild(opt);
-  });
-}
+      // fallback keys (in case)
+      const keys = ["cbt_entries", "entries", "camp_bead_entries", "bead_entries"];
+      for (const k of keys){
+        try{
+          const raw = localStorage.getItem(k);
+          if (raw) return JSON.parse(raw);
+        }catch(e){}
+      }
+      return [];
+    }
 
-function populateOrders(year){
-  orderSelect.innerHTML='<option value="__ALL__">All Orders</option>';
-  const entries=filterEntries({year});
-  const orders=[...new Set(entries.map(e=>e.order))];
-  orders.forEach(o=>{
-    const opt=document.createElement("option");
-    opt.value=o; opt.textContent="Order "+o;
-    orderSelect.appendChild(opt);
-  });
-}
+    function parseMMDDYYYY(s){
+      // expects "MM/DD/YYYY"
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s||"").trim());
+      if (!m) return null;
+      return { mm:+m[1], dd:+m[2], yyyy:+m[3] };
+    }
 
-function render(){
-  const year=parseInt(yearSelect.value);
-  const order=orderSelect.value;
-  const entries=filterEntries({year,order});
+    function msToHoursMinutes(ms){
+      const totalMin = Math.floor(Math.max(0, ms) / 60000);
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      return { h, m, totalMin };
+    }
 
-  const s=summarize(entries);
-  summary.innerHTML=`
-  Total: ${msToHuman(s.totalMs)}<br>
-  Sessions: ${s.sessions}<br>
-  Avg: ${msToHuman(s.avgMs)}<br>
-  Longest: ${msToHuman(s.longestMs)}<br>
-  Most Used: ${s.mostUsedTask}<br>
-  Total Beads: ${s.totalBeads}
-  `;
+    function uniq(arr){
+      return Array.from(new Set(arr));
+    }
 
-  const labels=TASKS;
-  const data=labels.map(t=>(s.byTaskMs[t]||0)/3600000);
+    // -------- bar chart renderer (no external libs) --------
+    function drawBarChart(canvas, labels, values, valueFormatter){
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
 
-  if(chart) chart.destroy();
-  chart=new Chart(document.getElementById("chart"),{
-    type:"bar",
-    data:{labels,datasets:[{data,label:"Hours"}]},
-    options:{plugins:{legend:{display:false}}}
-  });
-}
+      // padding
+      const padL = 70, padR = 18, padT = 14, padB = 56;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
 
-yearSelect.addEventListener("change",()=>{
-  populateOrders(parseInt(yearSelect.value));
-  render();
-});
+      const maxV = Math.max(1, ...values);
+      const n = Math.max(1, labels.length);
+      const gap = 10;
+      const barW = Math.max(12, Math.floor((plotW - gap*(n-1)) / n));
 
-orderSelect.addEventListener("change",render);
+      // axes
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = "#000";
+      ctx.fillRect(padL, padT + plotH, plotW, 2);
+      ctx.fillRect(padL, padT, 2, plotH + 2);
+      ctx.globalAlpha = 1;
 
-populateYears();
-</script>
+      // y ticks
+      ctx.font = "18px FromWhereYouAre, sans-serif";
+      ctx.fillStyle = "rgba(0,0,0,0.65)";
+      const ticks = 4;
+      for (let i=0;i<=ticks;i++){
+        const t = i/ticks;
+        const y = padT + plotH - t*plotH;
+        const v = Math.round(t*maxV);
+        ctx.globalAlpha = 0.18;
+        ctx.fillRect(padL, y, plotW, 1);
+        ctx.globalAlpha = 1;
+        ctx.fillText(String(v), 10, y + 6);
+      }
+
+      // bars
+      for (let i=0;i<labels.length;i++){
+        const v = values[i];
+        const x = padL + i*(barW+gap);
+        const h = (v/maxV) * plotH;
+        const y = padT + (plotH - h);
+
+        // bars use a default fill (you can later match your palette)
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(x, y, barW, h);
+        ctx.globalAlpha = 1;
+
+        // value label
+        const valText = valueFormatter ? valueFormatter(v) : String(v);
+        ctx.fillStyle = "rgba(0,0,0,0.75)";
+        ctx.fillText(valText, x, y - 6);
+
+        // x label (rotate slightly for readability)
+        ctx.save();
+        ctx.translate(x + barW/2, padT + plotH + 22);
+        ctx.rotate(-0.35);
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(0,0,0,0.75)";
+        ctx.fillText(labels[i], 0, 0);
+        ctx.restore();
+      }
+    }
+
+    // -------- page logic --------
+    const yearSelect = document.getElementById("yearSelect");
+    const orderSelect = document.getElementById("orderSelect");
+    const summaryNote = document.getElementById("summaryNote");
+
+    const chartTime = document.getElementById("chartTime");
+    const chartBeads = document.getElementById("chartBeads");
+    const chartSessions = document.getElementById("chartSessions");
+
+    const TASKS_FALLBACK = [
+      "Airbrush","Starter Coat","Base Coat","Laser","Detail (Side A)","Detail (Side B)"
+    ];
+    const TASKS_LIST = (typeof TASKS !== "undefined" && Array.isArray(TASKS) && TASKS.length)
+      ? TASKS
+      : TASKS_FALLBACK;
+
+    function refreshYearOptions(entries){
+      const years = uniq(
+        entries.map(e => parseMMDDYYYY(e.date)?.yyyy).filter(Boolean)
+      ).sort((a,b)=>b-a);
+
+      yearSelect.innerHTML = "";
+      if (!years.length){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No data yet";
+        yearSelect.appendChild(opt);
+        yearSelect.disabled = true;
+        orderSelect.innerHTML = "";
+        orderSelect.disabled = true;
+        return;
+      }
+
+      years.forEach(y=>{
+        const opt = document.createElement("option");
+        opt.value = String(y);
+        opt.textContent = String(y);
+        yearSelect.appendChild(opt);
+      });
+
+      yearSelect.disabled = false;
+      yearSelect.value = String(years[0]);
+    }
+
+    function refreshOrderOptions(entries, year){
+      const orders = uniq(
+        entries
+          .filter(e => parseMMDDYYYY(e.date)?.yyyy === year)
+          .map(e => String(e.order || "").trim())
+          .filter(Boolean)
+      ).sort((a,b)=>a.localeCompare(b));
+
+      orderSelect.innerHTML = "";
+      if (!orders.length){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "No orders for year";
+        orderSelect.appendChild(opt);
+        orderSelect.disabled = true;
+        return;
+      }
+
+      orders.forEach(o=>{
+        const opt = document.createElement("option");
+        opt.value = o;
+        opt.textContent = o;
+        orderSelect.appendChild(opt);
+      });
+
+      orderSelect.disabled = false;
+      orderSelect.value = orders[0];
+    }
+
+    function computeMetrics(entries, year, order){
+      const filtered = entries.filter(e=>{
+        const p = parseMMDDYYYY(e.date);
+        if (!p) return false;
+        if (p.yyyy !== year) return false;
+        if (String(e.order||"").trim() !== order) return false;
+        return true;
+      });
+
+      const byTask = {};
+      TASKS_LIST.forEach(t=>{
+        byTask[t] = { ms:0, beads:0, sessions:0 };
+      });
+
+      filtered.forEach(e=>{
+        const t = String(e.task||"").trim();
+        if (!byTask[t]) byTask[t] = { ms:0, beads:0, sessions:0 };
+        byTask[t].ms += Number(e.duration_ms||0);
+        byTask[t].beads += Number(e.bead_count||0);
+        byTask[t].sessions += 1;
+      });
+
+      const labels = Object.keys(byTask);
+      const timeVals = labels.map(t => Math.round(byTask[t].ms/60000)); // minutes
+      const beadVals = labels.map(t => byTask[t].beads);
+      const sessVals = labels.map(t => byTask[t].sessions);
+
+      const totalMs = filtered.reduce((a,e)=>a+Number(e.duration_ms||0),0);
+      const totalBeads = filtered.reduce((a,e)=>a+Number(e.bead_count||0),0);
+
+      return { filteredCount: filtered.length, totalMs, totalBeads, labels, timeVals, beadVals, sessVals };
+    }
+
+    function refreshAll(){
+      const entries = getEntriesSafe();
+      refreshYearOptions(entries);
+
+      const year = parseInt(yearSelect.value, 10);
+      if (!year || yearSelect.disabled){
+        summaryNote.textContent = "No entries yet. Start the timer and stop to create sessions.";
+        drawBarChart(chartTime, [], [], null);
+        drawBarChart(chartBeads, [], [], null);
+        drawBarChart(chartSessions, [], [], null);
+        return;
+      }
+
+      refreshOrderOptions(entries, year);
+
+      const order = orderSelect.value;
+      if (!order || orderSelect.disabled){
+        summaryNote.textContent = "No orders found for that year.";
+        drawBarChart(chartTime, [], [], null);
+        drawBarChart(chartBeads, [], [], null);
+        drawBarChart(chartSessions, [], [], null);
+        return;
+      }
+
+      const m = computeMetrics(entries, year, order);
+      const hm = msToHoursMinutes(m.totalMs);
+
+      summaryNote.textContent =
+        `Order "${order}" in ${year}: ${hm.h} hours ${hm.m} minutes · ${m.totalBeads} beads · ${m.filteredCount} sessions`;
+
+      drawBarChart(
+        chartTime,
+        m.labels,
+        m.timeVals,
+        v => `${v}m`
+      );
+
+      drawBarChart(
+        chartBeads,
+        m.labels,
+        m.beadVals,
+        v => String(v)
+      );
+
+      drawBarChart(
+        chartSessions,
+        m.labels,
+        m.sessVals,
+        v => String(v)
+      );
+    }
+
+    yearSelect.addEventListener("change", refreshAll);
+    orderSelect.addEventListener("change", refreshAll);
+
+    refreshAll();
+  </script>
 </body>
 </html>
