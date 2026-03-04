@@ -6,204 +6,455 @@
   <title>Entries</title>
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-<!-- SIDEBAR BACKDROP -->
-<div class="backdrop" id="backdrop"></div>
+  <!-- SIDEBAR BACKDROP -->
+  <div class="backdrop" id="backdrop" aria-hidden="true"></div>
 
-<!-- SIDEBAR -->
-<aside class="drawer" id="drawer">
-
-  <div class="drawerEmoji">
-    <img src="assets/emojis.png" alt="">
-  </div>
-
-  <nav class="drawerMenu">
-
-    <a class="drawerBtn" href="index.html">
-      <img src="assets/timer.png" alt="Timer">
-    </a>
-
-    <a class="drawerBtn" href="entries.html">
-      <img src="assets/entries.png" alt="Entries">
-    </a>
-
-    <a class="drawerBtn" href="analytics.html">
-      <img src="assets/analytics.png" alt="Analytics">
-    </a>
-
-    <a class="drawerBtn" href="export.html">
-      <img src="assets/export.png" alt="Export">
-    </a>
-
-  </nav>
-
-</aside>
-
-
-<!-- EVERYTHING ELSE ON THE PAGE -->
-<div class="container">
-
-</div>
-
-</body>
-</html>
-  <div class="container">
-
-    <div class="topbar">
-      <button class="hamburger" id="btnMenu" aria-label="Open menu">☰</button>
-      <h1 class="title">Entries</h1>
-      <div class="spacer44"></div>
+  <!-- SIDEBAR (PNG MENU) -->
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawerEmoji">
+      <img src="assets/emojis.png" alt="">
     </div>
 
-    <!-- Drawer -->
-    <div class="backdrop" id="backdrop" aria-hidden="true"></div>
-    <aside class="drawer" id="drawer" aria-label="Menu">
-      <a href="index.html">Timer</a>
-      <a href="entries.html">Entries</a>
-      <a href="analytics.html">Analytics</a>
-      <a href="export.html">Export / Backup</a>
-    </aside>
+    <nav class="drawerMenu">
+      <a class="drawerBtn" href="index.html"><img src="assets/timer.png" alt="Timer"></a>
+      <a class="drawerBtn" href="entries.html"><img src="assets/entries.png" alt="Entries"></a>
+      <a class="drawerBtn" href="analytics.html"><img src="assets/analytics.png" alt="Analytics"></a>
+      <a class="drawerBtn" href="export.html"><img src="assets/export.png" alt="Export"></a>
+    </nav>
+  </aside>
 
-    <!-- Filters -->
+  <!-- PAGE CONTENT -->
+  <div class="container">
+
+    <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+      <button class="btn" id="btnMenu" aria-label="Open menu">Menu</button>
+      <h1 class="title" style="margin:0;">Entries</h1>
+      <div style="width:44px;height:44px;"></div>
+    </div>
+
     <div class="card">
       <div class="row">
         <div class="field">
           <label for="orderFilter">Order</label>
-          <select id="orderFilter">
-            <option value="__ALL__">All orders</option>
-          </select>
-          <div class="smallNote">Orders listed here come from your saved entries.</div>
+          <select id="orderFilter"></select>
         </div>
 
         <div class="field">
           <label for="taskFilter">Task</label>
-          <select id="taskFilter">
-            <option value="__ALL__">All tasks</option>
-          </select>
-          <div class="smallNote">Filter by one task or view everything.</div>
+          <select id="taskFilter"></select>
         </div>
       </div>
 
-      <div class="smallNote">Newest first. Delete removes an entry permanently (local only).</div>
+      <div class="row" style="margin-top:10px;">
+        <div class="field">
+          <label for="sortSelect">Sort</label>
+          <select id="sortSelect">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="btn" id="btnClearFilters">Clear filters</button>
+        </div>
+      </div>
+
+      <p class="smallNote" id="countNote" style="margin-top:10px;"></p>
     </div>
 
-    <!-- List -->
-    <div class="card" style="margin-top:14px;">
-      <div class="sectionTitle">Session list</div>
-      <div class="list" id="entriesList"></div>
-    </div>
+    <div class="list" id="entriesList" style="margin-top:12px;"></div>
 
+  </div>
+
+  <!-- EDIT SHEET -->
+  <div class="sheetBackdrop" id="editBackdrop" aria-hidden="true"></div>
+  <div class="sheet" id="editSheet" role="dialog" aria-modal="true" aria-label="Edit entry">
+    <div class="sheetHandle"></div>
+    <h2 class="sheetTitle">Edit Entry</h2>
+
+    <div class="sheetRow">
+      <div class="field">
+        <label for="editTask">Task</label>
+        <select id="editTask"></select>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="editStart">Start time</label>
+          <!-- type="time" uses device time picker (internally 24h, display to user varies) -->
+          <input id="editStart" type="time" step="1" />
+        </div>
+        <div class="field">
+          <label for="editEnd">End time</label>
+          <input id="editEnd" type="time" step="1" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="editBeads">Bead count</label>
+        <input id="editBeads" type="number" min="0" step="1" inputmode="numeric" />
+      </div>
+
+      <div class="row">
+        <button class="btn" id="btnEditSave">Save</button>
+        <button class="btn" id="btnEditCancel">Cancel</button>
+      </div>
+
+      <p class="smallNote" id="editNote"></p>
+    </div>
   </div>
 
   <script src="app.js"></script>
   <script>
-    initDrawer();
+    // Drawer
+    if (typeof initDrawer === "function") initDrawer();
 
-    const orderFilter = document.getElementById("orderFilter");
-    const taskFilter  = document.getElementById("taskFilter");
-    const entriesList = document.getElementById("entriesList");
-
-    // Fill task dropdown from the canonical task list
-    TASKS.forEach(t => {
-      const opt = document.createElement("option");
-      opt.value = t;
-      opt.textContent = t;
-      taskFilter.appendChild(opt);
-    });
-
-    function sortOrdersSmart(a, b){
-      const na = Number(a), nb = Number(b);
-      const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
-      if (aNum && bNum) return na - nb;
-      return String(a).localeCompare(String(b));
+    // ---------- Storage helpers (use app.js if present) ----------
+    function loadEntriesSafe(){
+      if (typeof loadEntries === "function") return loadEntries();
+      try{
+        const raw = localStorage.getItem("cbt_entries");
+        return raw ? JSON.parse(raw) : [];
+      }catch(e){
+        return [];
+      }
     }
 
-    function populateOrderDropdown(keepSelected = true){
-      const prev = keepSelected ? orderFilter.value : "__ALL__";
+    function saveEntriesSafe(entries){
+      if (typeof saveEntries === "function") return saveEntries(entries);
+      localStorage.setItem("cbt_entries", JSON.stringify(entries));
+    }
 
-      const entries = loadEntries();
-      const orders = [...new Set(entries.map(e => String(e.order)))].sort(sortOrdersSmart);
+    // ---------- Task list ----------
+    const TASKS_FALLBACK = [
+      "Airbrush","Starter Coat","Base Coat","Laser","Detail (Side A)","Detail (Side B)"
+    ];
+    const TASKS_LIST = (typeof TASKS !== "undefined" && Array.isArray(TASKS) && TASKS.length)
+      ? TASKS
+      : TASKS_FALLBACK;
 
-      orderFilter.innerHTML = '<option value="__ALL__">All orders</option>';
+    // ---------- Time formatting (NO military time display) ----------
+    function pad2(n){ return String(n).padStart(2,"0"); }
 
-      for (const o of orders){
+    function parseHMS(t){
+      // accepts "HH:MM:SS" or "HH:MM"
+      const s = String(t||"").trim();
+      const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+      if (!m) return null;
+      const hh = +m[1], mm = +m[2], ss = m[3] ? +m[3] : 0;
+      if (hh<0||hh>23||mm<0||mm>59||ss<0||ss>59) return null;
+      return { hh, mm, ss };
+    }
+
+    function hmsToSeconds(hms){
+      return hms.hh*3600 + hms.mm*60 + hms.ss;
+    }
+
+    function secondsToHMS(sec){
+      sec = ((sec % 86400) + 86400) % 86400;
+      const hh = Math.floor(sec/3600);
+      const mm = Math.floor((sec%3600)/60);
+      const ss = sec%60;
+      return { hh, mm, ss };
+    }
+
+    function to12h(t){
+      const p = parseHMS(t);
+      if (!p) return t || "";
+      let h = p.hh;
+      const ampm = h >= 12 ? "PM" : "AM";
+      h = h % 12;
+      if (h === 0) h = 12;
+      return `${h}:${pad2(p.mm)}${p.ss ? ":"+pad2(p.ss) : ""} ${ampm}`;
+    }
+
+    function toTimeInputValue(t){
+      const p = parseHMS(t);
+      if (!p) return "";
+      return `${pad2(p.hh)}:${pad2(p.mm)}:${pad2(p.ss)}`;
+    }
+
+    function fromTimeInputValue(v){
+      // "HH:MM" or "HH:MM:SS"
+      const p = parseHMS(v);
+      if (!p) return "";
+      return `${pad2(p.hh)}:${pad2(p.mm)}:${pad2(p.ss)}`;
+    }
+
+    function msToNiceDuration(ms){
+      ms = Math.max(0, Number(ms||0));
+      const totalMin = Math.round(ms/60000);
+      const h = Math.floor(totalMin/60);
+      const m = totalMin % 60;
+      if (h === 0) return `${m}m`;
+      return `${h}h ${m}m`;
+    }
+
+    function safeInt(x, d=0){
+      const n = parseInt(String(x??"").trim(), 10);
+      return Number.isFinite(n) ? n : d;
+    }
+
+    function uniq(arr){ return Array.from(new Set(arr)); }
+
+    // ---------- UI elements ----------
+    const orderFilter = document.getElementById("orderFilter");
+    const taskFilter  = document.getElementById("taskFilter");
+    const sortSelect  = document.getElementById("sortSelect");
+    const btnClearFilters = document.getElementById("btnClearFilters");
+    const entriesList = document.getElementById("entriesList");
+    const countNote   = document.getElementById("countNote");
+
+    // Edit sheet
+    const editBackdrop = document.getElementById("editBackdrop");
+    const editSheet = document.getElementById("editSheet");
+    const editTask = document.getElementById("editTask");
+    const editStart = document.getElementById("editStart");
+    const editEnd = document.getElementById("editEnd");
+    const editBeads = document.getElementById("editBeads");
+    const btnEditSave = document.getElementById("btnEditSave");
+    const btnEditCancel = document.getElementById("btnEditCancel");
+    const editNote = document.getElementById("editNote");
+
+    // Fill task dropdowns
+    function fillTaskSelect(sel, includeAll){
+      sel.innerHTML = "";
+      if (includeAll){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "All tasks";
+        sel.appendChild(opt);
+      }
+      TASKS_LIST.forEach(t=>{
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+      });
+    }
+
+    // Build order dropdown from stored orders
+    function fillOrderSelect(sel, orders){
+      sel.innerHTML = "";
+      const optAll = document.createElement("option");
+      optAll.value = "";
+      optAll.textContent = "All orders";
+      sel.appendChild(optAll);
+
+      orders.forEach(o=>{
         const opt = document.createElement("option");
         opt.value = o;
         opt.textContent = o;
-        orderFilter.appendChild(opt);
-      }
-
-      // Restore prior selection if it still exists
-      if (keepSelected){
-        const exists = Array.from(orderFilter.options).some(opt => opt.value === prev);
-        orderFilter.value = exists ? prev : "__ALL__";
-      }
+        sel.appendChild(opt);
+      });
     }
 
-    function render(){
-      const order = orderFilter.value;
-      const task  = taskFilter.value;
+    fillTaskSelect(taskFilter, true);
+    fillTaskSelect(editTask, false);
 
-      let entries = loadEntries().slice().reverse(); // newest first
+    // ---------- Render ----------
+    let editingId = null;
 
-      if (order && order !== "__ALL__"){
-        entries = entries.filter(e => String(e.order) === String(order));
-      }
-      if (task && task !== "__ALL__"){
-        entries = entries.filter(e => String(e.task) === String(task));
-      }
+    function openEdit(entry){
+      editingId = entry.id;
+      editNote.textContent = "";
 
-      entriesList.innerHTML = "";
+      editTask.value = entry.task || TASKS_LIST[0] || "";
+      editStart.value = toTimeInputValue(entry.start_time);
+      editEnd.value = toTimeInputValue(entry.end_time);
+      editBeads.value = String(entry.bead_count ?? 0);
 
-      if (entries.length === 0){
-        const div = document.createElement("div");
-        div.className = "smallNote";
-        div.textContent = "No matching entries.";
-        entriesList.appendChild(div);
+      editBackdrop.classList.add("open");
+      editSheet.classList.add("open");
+    }
+
+    function closeEdit(){
+      editingId = null;
+      editBackdrop.classList.remove("open");
+      editSheet.classList.remove("open");
+    }
+
+    editBackdrop.addEventListener("click", closeEdit);
+    btnEditCancel.addEventListener("click", closeEdit);
+
+    function recomputeDurationMs(startHMS, endHMS){
+      const ps = parseHMS(startHMS);
+      const pe = parseHMS(endHMS);
+      if (!ps || !pe) return null;
+
+      let s = hmsToSeconds(ps);
+      let e = hmsToSeconds(pe);
+
+      // If end is earlier than start, assume it crossed midnight
+      if (e < s) e += 86400;
+
+      return (e - s) * 1000;
+    }
+
+    btnEditSave.addEventListener("click", ()=>{
+      if (!editingId) return;
+
+      const entries = loadEntriesSafe();
+      const idx = entries.findIndex(e => String(e.id) === String(editingId));
+      if (idx < 0){
+        editNote.textContent = "Could not find that entry.";
         return;
       }
 
-      for (const e of entries){
-        const beads = Number.isFinite(e.bead_count) ? e.bead_count : 0;
+      const newTask = String(editTask.value || "").trim();
+      const newStart = fromTimeInputValue(editStart.value);
+      const newEnd = fromTimeInputValue(editEnd.value);
+      const newBeads = Math.max(0, safeInt(editBeads.value, 0));
 
-        const row = document.createElement("div");
-        row.className = "entry";
-        row.innerHTML = `
-          <div class="left">
-            <div class="main">Order ${e.order} • ${e.task}</div>
-            <div class="meta">${e.date} • ${e.start_time}–${e.end_time}</div>
-          </div>
-
-          <div class="right">
-            <div class="badge">${msToHuman(e.duration_ms || 0)}</div>
-            <div class="badge">Beads: ${beads}</div>
-            <button class="btn btnDanger" data-id="${e.id}">Delete</button>
-          </div>
-        `;
-        entriesList.appendChild(row);
+      if (!newTask){
+        editNote.textContent = "Choose a task.";
+        return;
+      }
+      if (!newStart || !newEnd){
+        editNote.textContent = "Enter both start and end time.";
+        return;
       }
 
-      // Wire delete buttons
-      entriesList.querySelectorAll("button[data-id]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          deleteEntryById(id);
+      const dur = recomputeDurationMs(newStart, newEnd);
+      if (dur == null){
+        editNote.textContent = "Invalid time format.";
+        return;
+      }
 
-          // repopulate dropdown (in case an order disappears)
-          populateOrderDropdown(true);
+      // Update the entry
+      entries[idx] = {
+        ...entries[idx],
+        task: newTask,
+        start_time: newStart,
+        end_time: newEnd,
+        bead_count: newBeads,
+        duration_ms: dur
+      };
 
-          // re-render list
-          render();
-        });
+      saveEntriesSafe(entries);
+      closeEdit();
+      render();
+    });
+
+    function deleteEntry(id){
+      const ok = confirm("Delete this entry?");
+      if (!ok) return;
+
+      const entries = loadEntriesSafe().filter(e => String(e.id) !== String(id));
+      saveEntriesSafe(entries);
+      render();
+    }
+
+    function render(){
+      const entries = loadEntriesSafe();
+
+      const orders = uniq(
+        entries.map(e => String(e.order||"").trim()).filter(Boolean)
+      ).sort((a,b)=>a.localeCompare(b));
+
+      // keep current filter values if possible
+      const prevOrder = orderFilter.value;
+      fillOrderSelect(orderFilter, orders);
+      orderFilter.value = orders.includes(prevOrder) ? prevOrder : (prevOrder ? "" : "");
+
+      const selectedOrder = String(orderFilter.value || "");
+      const selectedTask = String(taskFilter.value || "");
+      const sortMode = sortSelect.value || "newest";
+
+      let filtered = entries.slice();
+
+      if (selectedOrder){
+        filtered = filtered.filter(e => String(e.order||"").trim() === selectedOrder);
+      }
+      if (selectedTask){
+        filtered = filtered.filter(e => String(e.task||"").trim() === selectedTask);
+      }
+
+      // sort by date + end_time (best effort)
+      function sortKey(e){
+        const d = String(e.date||"");
+        const p = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d);
+        const y = p ? +p[3] : 0;
+        const m = p ? +p[1] : 0;
+        const da = p ? +p[2] : 0;
+        const t = parseHMS(e.end_time) ? hmsToSeconds(parseHMS(e.end_time)) : 0;
+        return y*1e9 + m*1e7 + da*1e5 + t;
+      }
+
+      filtered.sort((a,b)=>{
+        const ka = sortKey(a);
+        const kb = sortKey(b);
+        return sortMode === "oldest" ? (ka - kb) : (kb - ka);
+      });
+
+      countNote.textContent = `${filtered.length} entries shown`;
+
+      entriesList.innerHTML = "";
+      if (!filtered.length){
+        const empty = document.createElement("div");
+        empty.className = "card";
+        empty.textContent = "No entries match your filters.";
+        entriesList.appendChild(empty);
+        return;
+      }
+
+      filtered.forEach(e=>{
+        const wrap = document.createElement("div");
+        wrap.className = "entry";
+
+        const left = document.createElement("div");
+        left.className = "left";
+
+        const main = document.createElement("div");
+        main.className = "main";
+        main.textContent = `${e.order || "Order"} · ${e.task || "Task"}`;
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        const start12 = to12h(e.start_time);
+        const end12 = to12h(e.end_time);
+        meta.textContent = `${e.date || ""} · ${start12} – ${end12} · ${msToNiceDuration(e.duration_ms)} · Beads: ${e.bead_count ?? 0}`;
+
+        left.appendChild(main);
+        left.appendChild(meta);
+
+        const right = document.createElement("div");
+        right.className = "right";
+
+        const btnEdit = document.createElement("button");
+        btnEdit.className = "btn";
+        btnEdit.textContent = "Edit";
+        btnEdit.addEventListener("click", ()=>openEdit(e));
+
+        const btnDel = document.createElement("button");
+        btnDel.className = "btn btnDanger";
+        btnDel.textContent = "Delete";
+        btnDel.addEventListener("click", ()=>deleteEntry(e.id));
+
+        right.appendChild(btnEdit);
+        right.appendChild(btnDel);
+
+        wrap.appendChild(left);
+        wrap.appendChild(right);
+        entriesList.appendChild(wrap);
       });
     }
 
     orderFilter.addEventListener("change", render);
     taskFilter.addEventListener("change", render);
+    sortSelect.addEventListener("change", render);
 
-    // Initial load
-    populateOrderDropdown(false);
+    btnClearFilters.addEventListener("click", ()=>{
+      orderFilter.value = "";
+      taskFilter.value = "";
+      sortSelect.value = "newest";
+      render();
+    });
+
     render();
   </script>
 </body>
