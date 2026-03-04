@@ -299,4 +299,7 @@ select, input[type="text"], input[type="number"]{
 }
 
 }
+.entry .main{
+  line-height:1.4;
+}
 
