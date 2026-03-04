@@ -1,113 +1,240 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Export</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Export</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-<div class="container">
+  <!-- SIDEBAR BACKDROP -->
+  <div class="backdrop" id="backdrop" aria-hidden="true"></div>
 
-<div class="topbar">
-<button class="hamburger" id="btnMenu">☰</button>
-<h1 class="title">Export / Backup</h1>
-<div class="spacer44"></div>
-</div>
+  <!-- SIDEBAR (PNG MENU) -->
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawerEmoji">
+      <img src="assets/emojis.png" alt="">
+    </div>
 
-<div class="backdrop" id="backdrop"></div>
-<aside class="drawer" id="drawer">
-<a href="index.html">Timer</a>
-<a href="entries.html">Entries</a>
-<a href="analytics.html">Analytics</a>
-<a href="export.html">Export / Backup</a>
-</aside>
+    <nav class="drawerMenu">
+      <a class="drawerBtn" href="index.html"><img src="assets/timer.png" alt="Timer"></a>
+      <a class="drawerBtn" href="entries.html"><img src="assets/entries.png" alt="Entries"></a>
+      <a class="drawerBtn" href="analytics.html"><img src="assets/analytics.png" alt="Analytics"></a>
+      <a class="drawerBtn" href="export.html"><img src="assets/export.png" alt="Export"></a>
+    </nav>
+  </aside>
 
-<div class="card">
-<button class="btn" id="exportCSV">Export CSV</button>
-<button class="btn" id="exportJSON">Backup JSON</button>
-<input type="file" id="importFile">
-<button class="btn btnDanger" id="importJSON">Import JSON</button>
-</div>
+  <!-- PAGE CONTENT -->
+  <div class="container">
 
-</div>
+    <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+      <!-- menu trigger (you can swap to flower art later) -->
+      <button class="btn" id="btnMenu" aria-label="Open menu">Menu</button>
+      <h1 class="title" style="margin:0;">Export / Backup</h1>
+      <div style="width:44px;height:44px;"></div>
+    </div>
 
-<script src="app.js"></script>
-<script>
-initDrawer();
+    <div class="card">
+      <h2 class="sectionTitle">Download your data</h2>
+      <p class="smallNote" style="margin-top:6px;">
+        Use this to back up your sessions or move them to another device.
+      </p>
 
-function download(filename,text){
-const blob=new Blob([text]);
-const url=URL.createObjectURL(blob);
-const a=document.createElement("a");
-a.href=url;
-a.download=filename;
-a.click();
-URL.revokeObjectURL(url);
-}
+      <div class="row" style="margin-top:12px;">
+        <button class="btn" id="btnDownloadJson">Download JSON</button>
+        <button class="btn" id="btnDownloadCsv">Download CSV</button>
+      </div>
 
-document.getElementById("exportCSV").onclick=()=>{
-const entries=loadEntries();
-let csv="order,task,date,start,end,duration_ms,beads\n";
-entries.forEach(e=>{
-csv+=`${e.order},${e.task},${e.date},${e.start_time},${e.end_time},${e.duration_ms},${e.bead_count}\n`;
-});
-download("bead_data.csv",csv);
-};
+      <p class="smallNote" id="countsNote" style="margin-top:10px;"></p>
+    </div>
 
-document.getElementById("exportJSON").onclick=()=>{
-download("bead_backup.json",JSON.stringify(loadEntries(),null,2));
-};
+    <div class="card" style="margin-top:12px;">
+      <h2 class="sectionTitle">Restore / Merge</h2>
+      <p class="smallNote" style="margin-top:6px;">
+        Select a JSON backup file you previously downloaded. This will merge entries (by id) so you don’t lose data.
+      </p>
 
-document.getElementById("importJSON").onclick=async()=>{
-const file=document.getElementById("importFile").files[0];
-if(!file) return;
-const text=await file.text();
-const data=JSON.parse(text);
-saveEntries(data);
-alert("Import complete");
-};
-</script>
+      <div class="row" style="margin-top:12px;">
+        <input type="file" id="fileInput" accept="application/json" />
+        <button class="btn" id="btnImport" disabled>Import</button>
+      </div>
 
-  <body>
+      <p class="smallNote" id="importNote" style="margin-top:10px;"></p>
+    </div>
 
-<!-- SIDEBAR BACKDROP -->
-<div class="backdrop" id="backdrop"></div>
+    <div class="card" style="margin-top:12px;">
+      <h2 class="sectionTitle">Danger Zone</h2>
+      <p class="smallNote" style="margin-top:6px;">
+        This removes ALL saved entries from THIS device only. Export first if you want a backup.
+      </p>
 
-<!-- SIDEBAR -->
-<aside class="drawer" id="drawer">
+      <button class="btn btnDanger" id="btnClearAll" style="margin-top:12px;">Delete all local entries</button>
+      <p class="smallNote" id="clearNote" style="margin-top:10px;"></p>
+    </div>
 
-  <div class="drawerEmoji">
-    <img src="assets/emojis.png" alt="">
   </div>
 
-  <nav class="drawerMenu">
-    <a class="drawerBtn" href="index.html">
-      <img src="assets/timer.png" alt="Timer">
-    </a>
+  <script src="app.js"></script>
+  <script>
+    // Drawer wiring
+    if (typeof initDrawer === "function") initDrawer();
 
-    <a class="drawerBtn" href="entries.html">
-      <img src="assets/entries.png" alt="Entries">
-    </a>
+    // Use app.js storage helpers if available; otherwise fall back
+    function loadEntriesSafe(){
+      if (typeof loadEntries === "function") return loadEntries();
+      try{
+        const raw = localStorage.getItem("cbt_entries");
+        return raw ? JSON.parse(raw) : [];
+      }catch(e){
+        return [];
+      }
+    }
 
-    <a class="drawerBtn" href="analytics.html">
-      <img src="assets/analytics.png" alt="Analytics">
-    </a>
+    function saveEntriesSafe(entries){
+      if (typeof saveEntries === "function") return saveEntries(entries);
+      localStorage.setItem("cbt_entries", JSON.stringify(entries));
+    }
 
-    <a class="drawerBtn" href="export.html">
-      <img src="assets/export.png" alt="Export">
-    </a>
-  </nav>
+    function uniqByIdMerge(existing, incoming){
+      const map = new Map();
+      (existing||[]).forEach(e => {
+        if (e && e.id != null) map.set(String(e.id), e);
+      });
+      (incoming||[]).forEach(e => {
+        if (!e || e.id == null) return;
+        const k = String(e.id);
+        if (!map.has(k)) map.set(k, e);
+      });
+      return Array.from(map.values());
+    }
 
-</aside>
+    function msToHMS(ms){
+      ms = Math.max(0, Number(ms||0));
+      const s = Math.floor(ms/1000);
+      const hh = String(Math.floor(s/3600)).padStart(2,"0");
+      const mm = String(Math.floor((s%3600)/60)).padStart(2,"0");
+      const ss = String(s%60).padStart(2,"0");
+      return `${hh}:${mm}:${ss}`;
+    }
 
+    function escapeCsv(val){
+      const s = String(val ?? "");
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
+      return s;
+    }
 
-<!-- EVERYTHING ELSE ON THE PAGE -->
-<div class="timerScreen">
+    function entriesToCsv(entries){
+      const cols = [
+        "id","date","order","task","start_time","end_time","duration_ms","duration_hms","bead_count"
+      ];
+      const lines = [cols.join(",")];
+      (entries||[]).forEach(e=>{
+        const row = {
+          id: e.id ?? "",
+          date: e.date ?? "",
+          order: e.order ?? "",
+          task: e.task ?? "",
+          start_time: e.start_time ?? "",
+          end_time: e.end_time ?? "",
+          duration_ms: e.duration_ms ?? 0,
+          duration_hms: msToHMS(e.duration_ms ?? 0),
+          bead_count: e.bead_count ?? 0
+        };
+        lines.push(cols.map(c=>escapeCsv(row[c])).join(","));
+      });
+      return lines.join("\n");
+    }
 
+    function downloadText(filename, text, mime){
+      const blob = new Blob([text], { type: mime || "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
 
-</div>
+    const btnDownloadJson = document.getElementById("btnDownloadJson");
+    const btnDownloadCsv = document.getElementById("btnDownloadCsv");
+    const countsNote = document.getElementById("countsNote");
+
+    const fileInput = document.getElementById("fileInput");
+    const btnImport = document.getElementById("btnImport");
+    const importNote = document.getElementById("importNote");
+
+    const btnClearAll = document.getElementById("btnClearAll");
+    const clearNote = document.getElementById("clearNote");
+
+    function refreshCounts(){
+      const entries = loadEntriesSafe();
+      countsNote.textContent = `${entries.length} total sessions stored on this device.`;
+    }
+
+    btnDownloadJson.addEventListener("click", ()=>{
+      const entries = loadEntriesSafe();
+      const payload = {
+        exported_at: new Date().toISOString(),
+        app: "Camp-Bead-Tracker",
+        entries
+      };
+      downloadText("camp-bead-tracker-backup.json", JSON.stringify(payload, null, 2), "application/json");
+    });
+
+    btnDownloadCsv.addEventListener("click", ()=>{
+      const entries = loadEntriesSafe();
+      const csv = entriesToCsv(entries);
+      downloadText("camp-bead-tracker-entries.csv", csv, "text/csv");
+    });
+
+    fileInput.addEventListener("change", ()=>{
+      btnImport.disabled = !fileInput.files || !fileInput.files.length;
+      importNote.textContent = "";
+    });
+
+    btnImport.addEventListener("click", async ()=>{
+      if (!fileInput.files || !fileInput.files.length) return;
+      const file = fileInput.files[0];
+
+      try{
+        const text = await file.text();
+        const obj = JSON.parse(text);
+
+        // Accept either {entries:[...]} or raw array [...]
+        const incoming = Array.isArray(obj) ? obj : (obj && Array.isArray(obj.entries) ? obj.entries : null);
+        if (!incoming){
+          importNote.textContent = "That file does not look like a valid backup (missing entries).";
+          return;
+        }
+
+        const existing = loadEntriesSafe();
+        const merged = uniqByIdMerge(existing, incoming);
+        saveEntriesSafe(merged);
+
+        importNote.textContent = `Imported ${incoming.length} entries. Total is now ${merged.length} sessions on this device.`;
+        fileInput.value = "";
+        btnImport.disabled = true;
+        refreshCounts();
+
+      }catch(err){
+        importNote.textContent = "Could not import that file. Make sure it is a JSON backup you downloaded from this site.";
+      }
+    });
+
+    btnClearAll.addEventListener("click", ()=>{
+      const ok = confirm("Delete ALL local entries on this device? Export first if you want a backup.");
+      if (!ok) return;
+      saveEntriesSafe([]);
+      clearNote.textContent = "All local entries deleted (this device only).";
+      refreshCounts();
+    });
+
+    refreshCounts();
+  </script>
 
 </body>
 </html>
