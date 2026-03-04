@@ -5,517 +5,430 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Timer</title>
   <link rel="stylesheet" href="style.css" />
-
-  <style>
-    /* ---------------------------
-       Timer page layout (no scroll)
-       --------------------------- */
-    body{
-      padding: 10px;
-      overflow: hidden; /* no page scroll */
-    }
-
-    .timerScreen{
-      height: 100svh; /* iPhone-safe viewport */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    /* Header image */
-    .headerImage{
-      width: min(92vw, 860px);
-      height: auto;
-      display: block;
-      margin-top: 6px;
-    }
-
-    /* Order / Task blocks row (mockup-style) */
-    .orderTaskRow{
-      width: min(92vw, 860px);
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-    }
-
-    /* Make them look like your rectangles */
-    .blockField{
-      flex: 1;
-      max-width: 420px;
-      height: 56px;               /* mockup-like height */
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 0 16px;
-      gap: 10px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.10);
-    }
-
-    .blockLabel{
-      font-weight: 900;
-      font-size: 22px;
-      line-height: 1;
-      white-space: nowrap;
-    }
-
-    /* Make the input/select look like plain text inside the block */
-    .inlineField{
-      flex: 1;
-      min-width: 0;
-      border: none !important;
-      outline: none !important;
-      background: transparent !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      font-size: 22px;
-      font-weight: 900;
-      line-height: 1;
-      color: inherit; /* uses block text color */
-      appearance: none;
-      -webkit-appearance: none;
-    }
-
-    /* Timer row: flower - timer - (optional heart later) */
-    .timerRow{
-      width: min(92vw, 860px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      margin-top: 2px;
-    }
-
-    /* Flower menu button is HERE (not absolute), so it won't overlap */
-    .flowerBtn{
-      border: none;
-      background: transparent;
-      padding: 0;
-      cursor: pointer;
-      flex: 0 0 auto;
-    }
-    .flowerBtn img{
-      width: 78px; /* tweak if you want bigger/smaller */
-      height: auto;
-      display: block;
-    }
-
-    .timerDisplay{
-      font-size: clamp(40px, 7vw, 56px);
-      font-weight: 950;
-      line-height: 1;
-      text-align: center;
-      min-width: 180px;
-    }
-
-    /* Start image button */
-    .startImgBtn{
-      border: none;
-      background: transparent;
-      padding: 0;
-      cursor: pointer;
-    }
-    .startImgBtn img{
-      width: min(520px, 78vw);
-      height: auto;
-      display: block;
-    }
-
-    /* Pause/Stop blocks row */
-    .controlsRow{
-      width: min(92vw, 860px);
-      display: flex;
-      justify-content: center;
-      gap: 18px;
-      margin-top: -2px;
-    }
-
-    .controlBlock{
-      width: min(44vw, 360px);
-      height: 56px;              /* same height as order/task */
-      border: none;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.10);
-      cursor: pointer;
-      font-size: 24px;
-      font-weight: 950;
-      line-height: 1;
-    }
-    .controlBlock:active{ transform: translateY(1px); }
-
-    /* Today summary block (bigger, like mockup) */
-    .todayBlock{
-      width: min(92vw, 860px);
-      border-radius: 18px;
-      padding: 12px 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.10);
-      text-align: center;
-    }
-    .todayTitle{
-      font-size: 24px;
-      font-weight: 950;
-      line-height: 1.05;
-      margin-bottom: 6px;
-    }
-    .todayValue{
-      font-size: 24px;
-      font-weight: 950;
-      line-height: 1.05;
-    }
-
-    /* Hide the old “recent sessions” section on the timer page to prevent scrolling.
-       You can add it back later in a different page if you want. */
-    .hideOnTimerPage{ display:none; }
-
-    /* Slightly tighter spacing on very small screens */
-    @media (max-width: 390px){
-      .blockField{ height: 52px; }
-      .controlBlock{ height: 52px; font-size: 22px; }
-      .flowerBtn img{ width: 70px; }
-    }
-  </style>
 </head>
 
 <body>
 
-<!-- SIDEBAR BACKDROP -->
-<div class="backdrop" id="backdrop"></div>
+  <!-- SIDEBAR BACKDROP -->
+  <div class="backdrop" id="backdrop" aria-hidden="true"></div>
 
-<!-- SIDEBAR -->
-<aside class="drawer" id="drawer">
+  <!-- SIDEBAR (PNG MENU) -->
+  <aside class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawerEmoji">
+      <img src="assets/emojis.png" alt="">
+    </div>
 
-  <div class="drawerEmoji">
-    <img src="assets/emojis.png" alt="">
-  </div>
+    <nav class="drawerMenu">
+      <a class="drawerBtn" href="index.html"><img src="assets/timer.png" alt="Timer"></a>
+      <a class="drawerBtn" href="entries.html"><img src="assets/entries.png" alt="Entries"></a>
+      <a class="drawerBtn" href="analytics.html"><img src="assets/analytics.png" alt="Analytics"></a>
+      <a class="drawerBtn" href="export.html"><img src="assets/export.png" alt="Export"></a>
+    </nav>
+  </aside>
 
-  <nav class="drawerMenu">
-    <a class="drawerBtn" href="index.html">
-      <img src="assets/timer.png" alt="Timer">
-    </a>
-
-    <a class="drawerBtn" href="entries.html">
-      <img src="assets/entries.png" alt="Entries">
-    </a>
-
-    <a class="drawerBtn" href="analytics.html">
-      <img src="assets/analytics.png" alt="Analytics">
-    </a>
-
-    <a class="drawerBtn" href="export.html">
-      <img src="assets/export.png" alt="Export">
-    </a>
-  </nav>
-
-</aside>
-
-
-<!-- EVERYTHING ELSE ON THE PAGE -->
-<div class="timerScreen">
-
-
-</div>
-
-</body>
+  <!-- TIMER SCREEN (fits iPhone) -->
   <div class="timerScreen">
 
-    <!-- HEADER -->
-    <img src="assets/header.png" class="headerImage" alt="Camp Beads">
+    <!-- Header image -->
+    <div class="container" style="width:min(520px,94vw);">
+      <img src="assets/header.png" class="headerImage" alt="Camp Beads">
+    </div>
 
-    <!-- Drawer (keep these IDs for initDrawer/app.js) -->
-    <div class="backdrop" id="backdrop" aria-hidden="true"></div>
-    <aside class="drawer" id="drawer" aria-label="Menu">
-      <a href="index.html">Timer</a>
-      <a href="entries.html">Entries</a>
-      <a href="analytics.html">Analytics</a>
-      <a href="export.html">Export / Backup</a>
-    </aside>
+    <!-- Order + Task row -->
+    <div class="container" style="width:min(520px,94vw);">
+      <div class="row">
+        <div class="field">
+          <select id="orderSelect" class="blockPink" aria-label="Order"></select>
+        </div>
 
-    <!-- ORDER + TASK blocks (one line each) -->
-    <div class="orderTaskRow">
-      <div class="blockPink blockField">
-        <span class="blockLabel">Order:</span>
-        <input id="orderInput" class="inlineField" type="text" placeholder="March" />
-      </div>
-
-      <div class="blockPink blockField">
-        <span class="blockLabel">Task:</span>
-        <select id="taskSelect" class="inlineField">
-          <option value="">—</option>
-        </select>
+        <div class="field">
+          <select id="taskSelect" class="blockPink" aria-label="Task"></select>
+        </div>
       </div>
     </div>
 
-    <!-- TIMER ROW (flower opens menu) -->
-    <div class="timerRow">
-      <button id="btnMenu" class="flowerBtn" aria-label="Open menu">
-        <img src="assets/flower.png" alt="">
+    <!-- Timer row (flower + timer) -->
+    <div class="container" style="width:min(520px,94vw); display:flex; align-items:center; justify-content:center; gap:14px;">
+      <button class="btn" id="btnMenu" aria-label="Open menu" style="padding:0; border:none; background:transparent;">
+        <img src="assets/flower.png" alt="Menu" style="display:block; width:64px; height:auto;">
       </button>
 
-      <div id="timerDisplay" class="timerDisplay">00:00:00</div>
-
-      <!-- If you later add heart.png, we can put it here -->
-      <!-- <img src="assets/heart.png" style="width:78px;height:auto;display:block;" alt=""> -->
+      <div id="timerDisplay" class="timerDisplay" style="font-size: clamp(38px, 10vw, 56px); font-weight: 900;">
+        00:00:00
+      </div>
     </div>
 
-    <!-- START BUTTON -->
-    <button id="btnStart" class="startImgBtn" aria-label="Start timer">
-      <img src="assets/start.png" alt="Start">
-    </button>
-
-    <!-- PAUSE / STOP blocks -->
-    <div class="controlsRow">
-      <button id="btnPause" class="blockPink controlBlock">Pause</button>
-      <button id="btnStop" class="blockPink controlBlock">Stop</button>
+    <!-- Start button (image button) -->
+    <div class="container" style="width:min(520px,94vw); display:flex; justify-content:center;">
+      <button class="startImgBtn" id="btnStart" aria-label="Start" style="border:none; background:transparent; padding:0;">
+        <img src="assets/start.png" alt="Start">
+      </button>
     </div>
 
-    <!-- TODAY SUMMARY (ONLY this text + value, with colon) -->
-    <div class="blockToday todayBlock">
-      <div class="todayTitle">Total Time Today:</div>
-      <div class="todayValue" id="todayTotal">0 hours 0 minutes</div>
+    <!-- Pause / Stop -->
+    <div class="container" style="width:min(520px,94vw);">
+      <div class="row">
+        <button class="btn blockPink controlBlock" id="btnPause" style="width:100%; border:none;">Pause</button>
+        <button class="btn blockPink controlBlock" id="btnStop" style="width:100%; border:none;">Stop</button>
+      </div>
     </div>
 
-    <!-- Keep status line (hidden visually unless you want it) -->
-    <div id="statusLine" class="statusLine" style="min-height:0; height:0; overflow:hidden;"></div>
-
-    <!-- Keep these elements in DOM but hidden to prevent scroll -->
-    <div class="hideOnTimerPage">
-      <div id="todayNote"></div>
-      <div id="recentList"></div>
+    <!-- Total time today -->
+    <div class="container" style="width:min(520px,94vw);">
+      <div class="blockToday todayBlock" style="border-radius:18px; padding:12px 16px; text-align:center;">
+        <div class="todayTitle" style="font-size:24px; font-weight:900;">Total Time Today:</div>
+        <div id="todayTotal" class="todayValue" style="font-size:24px; font-weight:900;">0 hours 0 minutes</div>
+      </div>
     </div>
 
   </div>
 
-  <!-- Bead Count slide-up sheet (KEEP ids) -->
+  <!-- Bead Count Sheet (used when Stop is pressed for certain tasks) -->
   <div class="sheetBackdrop" id="sheetBackdrop" aria-hidden="true"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Bead count">
     <div class="sheetHandle"></div>
     <h2 class="sheetTitle">Bead Count</h2>
+
     <div class="sheetRow">
-      <input id="beadCountInput" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
-      <div class="smallNote" id="beadCountHint">Enter bead count for this session.</div>
+      <input id="beadCountInput" type="number" min="0" step="1" inputmode="numeric" placeholder="Enter bead count" />
+
       <div class="sheetBtns">
+        <button class="btn" id="btnBeadSkip">Skip</button>
         <button class="btn" id="btnBeadSave">Save</button>
-        <button class="btn" id="btnBeadSkip">Skip (0)</button>
       </div>
+
+      <p class="smallNote" id="sheetNote"></p>
     </div>
   </div>
 
   <script src="app.js"></script>
   <script>
-    initDrawer();
+    // Drawer
+    if (typeof initDrawer === "function") initDrawer();
 
-    // Fill task dropdown
-    const taskSelect = document.getElementById("taskSelect");
-    TASKS.forEach(t => {
-      const opt = document.createElement("option");
-      opt.value = t;
-      opt.textContent = t;
-      taskSelect.appendChild(opt);
-    });
+    // ---- Task list ----
+    const TASKS_FALLBACK = [
+      "Airbrush","Starter Coat","Base Coat","Laser","Detail (Side A)","Detail (Side B)"
+    ];
+    const TASKS_LIST = (typeof TASKS !== "undefined" && Array.isArray(TASKS) && TASKS.length)
+      ? TASKS
+      : TASKS_FALLBACK;
 
-    // Order persistence
-    const orderInput = document.getElementById("orderInput");
-    orderInput.value = getCurrentOrder();
+    // Tasks that require bead count prompt
+    const BEAD_TASKS = new Set(["Starter Coat","Base Coat","Laser","Detail (Side A)","Detail (Side B)"]);
 
-    // Display rule: if user typed "March Order", show/store exactly what they typed.
-    // You asked "March" not "March Order" — easiest is: you enter "March".
-    // (If you want auto-strip "order" from the end, tell me and I’ll add it.)
-    orderInput.addEventListener("change", () => {
-      setCurrentOrder(orderInput.value);
-      refreshTodayOnly();
-    });
+    // ---- Storage helpers (use app.js if available) ----
+    function loadEntriesSafe(){
+      if (typeof loadEntries === "function") return loadEntries();
+      try{
+        const raw = localStorage.getItem("cbt_entries");
+        return raw ? JSON.parse(raw) : [];
+      }catch(e){ return []; }
+    }
 
-    // Last task persistence
-    const lastTask = getLastTask();
-    if (lastTask && TASKS.includes(lastTask)) taskSelect.value = lastTask;
-    taskSelect.addEventListener("change", () => setLastTask(taskSelect.value));
+    function saveEntriesSafe(entries){
+      if (typeof saveEntries === "function") return saveEntries(entries);
+      localStorage.setItem("cbt_entries", JSON.stringify(entries));
+    }
 
-    // Timer state
-    let tick = null;
-    let isRunning = false;
-    let isPaused = false;
-    let startEpochMs = null;
-    let pausedAccumMs = 0;
-    let pauseStartMs = null;
-    let pendingStop = null;
+    function loadSettings(){
+      try{
+        const raw = localStorage.getItem("cbt_settings");
+        return raw ? JSON.parse(raw) : {};
+      }catch(e){ return {}; }
+    }
 
+    function saveSettings(obj){
+      localStorage.setItem("cbt_settings", JSON.stringify(obj || {}));
+    }
+
+    // ---- DOM ----
+    const orderSelect = document.getElementById("orderSelect");
+    const taskSelect  = document.getElementById("taskSelect");
     const timerDisplay = document.getElementById("timerDisplay");
+
     const btnStart = document.getElementById("btnStart");
     const btnPause = document.getElementById("btnPause");
-    const btnStop = document.getElementById("btnStop");
-    const statusLine = document.getElementById("statusLine");
+    const btnStop  = document.getElementById("btnStop");
 
+    const todayTotal = document.getElementById("todayTotal");
+
+    // Bead sheet
     const sheetBackdrop = document.getElementById("sheetBackdrop");
     const sheet = document.getElementById("sheet");
     const beadCountInput = document.getElementById("beadCountInput");
-    const btnBeadSave = document.getElementById("btnBeadSave");
     const btnBeadSkip = document.getElementById("btnBeadSkip");
+    const btnBeadSave = document.getElementById("btnBeadSave");
+    const sheetNote = document.getElementById("sheetNote");
 
-    function elapsedMsNow(){
-      if (!startEpochMs) return 0;
-      const now = Date.now();
-      const base = now - startEpochMs - pausedAccumMs;
-      if (isPaused && pauseStartMs){
-        return (pauseStartMs - startEpochMs - pausedAccumMs);
-      }
-      return Math.max(0, base);
+    // ---- Utilities ----
+    function pad2(n){ return String(n).padStart(2,"0"); }
+
+    function nowHMS(){
+      const d = new Date();
+      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
     }
+
+    function formatMMDDYYYY(d){
+      return `${pad2(d.getMonth()+1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
+    }
+
+    function msToHMS(ms){
+      ms = Math.max(0, Number(ms||0));
+      const s = Math.floor(ms/1000);
+      const hh = pad2(Math.floor(s/3600));
+      const mm = pad2(Math.floor((s%3600)/60));
+      const ss = pad2(s%60);
+      return `${hh}:${mm}:${ss}`;
+    }
+
+    function msToHoursMinutes(ms){
+      const totalMin = Math.floor(Math.max(0, ms)/60000);
+      const h = Math.floor(totalMin/60);
+      const m = totalMin % 60;
+      return {h,m};
+    }
+
+    function todayKey(){
+      return formatMMDDYYYY(new Date());
+    }
+
+    function computeTodayTotal(entries){
+      const key = todayKey();
+      const ms = (entries||[])
+        .filter(e => e && e.date === key)
+        .reduce((a,e)=>a + Number(e.duration_ms||0), 0);
+      return ms;
+    }
+
+    function refreshToday(){
+      const ms = computeTodayTotal(loadEntriesSafe());
+      const hm = msToHoursMinutes(ms);
+      todayTotal.textContent = `${hm.h} hours ${hm.m} minutes`;
+    }
+
+    // ---- Orders list (remember last order) ----
+    function uniq(arr){ return Array.from(new Set(arr)); }
+
+    function buildOrderOptions(){
+      const entries = loadEntriesSafe();
+      const saved = loadSettings();
+
+      // collect previous orders
+      const orders = uniq(
+        entries.map(e => String(e.order||"").trim()).filter(Boolean)
+      ).sort((a,b)=>a.localeCompare(b));
+
+      // If none exist yet, provide common months as starter options
+      const monthDefaults = [
+        "January","February","March","April","May","June","July","August","September","October","November","December"
+      ];
+
+      const all = orders.length ? orders : monthDefaults;
+
+      orderSelect.innerHTML = "";
+      all.forEach(o=>{
+        const opt = document.createElement("option");
+        opt.value = o;
+        opt.textContent = `Order: ${o}`;
+        orderSelect.appendChild(opt);
+      });
+
+      // restore last order if possible
+      if (saved && saved.activeOrder && all.includes(saved.activeOrder)){
+        orderSelect.value = saved.activeOrder;
+      }else{
+        orderSelect.value = all[0];
+      }
+    }
+
+    function buildTaskOptions(){
+      const saved = loadSettings();
+
+      taskSelect.innerHTML = "";
+      TASKS_LIST.forEach(t=>{
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = `Task: ${t}`;
+        taskSelect.appendChild(opt);
+      });
+
+      if (saved && saved.activeTask && TASKS_LIST.includes(saved.activeTask)){
+        taskSelect.value = saved.activeTask;
+      }else{
+        taskSelect.value = TASKS_LIST[0] || "";
+      }
+    }
+
+    orderSelect.addEventListener("change", ()=>{
+      const s = loadSettings();
+      s.activeOrder = orderSelect.value;
+      saveSettings(s);
+    });
+
+    taskSelect.addEventListener("change", ()=>{
+      const s = loadSettings();
+      s.activeTask = taskSelect.value;
+      saveSettings(s);
+    });
+
+    // ---- Timer state ----
+    let running = false;
+    let paused = false;
+
+    let startEpoch = null;      // ms since epoch
+    let elapsedMs = 0;          // accumulated while paused
+
+    let tickHandle = null;
 
     function renderTimer(){
-      timerDisplay.textContent = msToHMS(elapsedMsNow());
+      const ms = elapsedMs + (running && !paused ? (Date.now() - startEpoch) : 0);
+      timerDisplay.textContent = msToHMS(ms);
     }
 
-    function startTicker(){
-      if (tick) clearInterval(tick);
-      tick = setInterval(renderTimer, 250);
+    function startTimer(){
+      if (running && !paused) return;
+
+      if (!running){
+        running = true;
+        paused = false;
+        elapsedMs = 0;
+        startEpoch = Date.now();
+        sessionStartHMS = nowHMS();
+        sessionDate = formatMMDDYYYY(new Date());
+      }else{
+        // resume
+        paused = false;
+        startEpoch = Date.now();
+      }
+
+      if (tickHandle) clearInterval(tickHandle);
+      tickHandle = setInterval(renderTimer, 250);
+      renderTimer();
     }
 
-    function stopTicker(){
-      if (tick) clearInterval(tick);
-      tick = null;
+    function pauseTimer(){
+      if (!running) return;
+
+      if (!paused){
+        // pause
+        elapsedMs += (Date.now() - startEpoch);
+        paused = true;
+      }else{
+        // resume
+        paused = false;
+        startEpoch = Date.now();
+      }
+      renderTimer();
     }
 
-    function setStatus(msg){
-      // kept but hidden; useful for debugging
-      statusLine.textContent = msg || "";
-    }
+    // session metadata
+    let sessionStartHMS = "";
+    let sessionDate = "";
+    let pendingStopEntry = null;
 
-    function ensureCanStart(){
-      const order = String(orderInput.value || "").trim();
-      const task = String(taskSelect.value || "").trim();
-      if (!order){ setStatus("Set an Order first."); orderInput.focus(); return false; }
-      if (!task){ setStatus("Select a Task first."); taskSelect.focus(); return false; }
-      return true;
-    }
-
-    function openSheet(){
+    function openBeadSheet(entry){
+      pendingStopEntry = entry;
+      sheetNote.textContent = "";
+      beadCountInput.value = "";
       sheetBackdrop.classList.add("open");
       sheet.classList.add("open");
-      beadCountInput.value = "";
-      beadCountInput.focus();
     }
 
-    function closeSheet(){
+    function closeBeadSheet(){
+      pendingStopEntry = null;
       sheetBackdrop.classList.remove("open");
       sheet.classList.remove("open");
     }
 
-    function commitPendingWithBeads(beadCount){
-      if (!pendingStop) return;
-      const entry = pendingStop;
-      entry.bead_count = safeParseInt(beadCount, 0);
+    sheetBackdrop.addEventListener("click", closeBeadSheet);
 
-      addEntry(entry);
+    function commitEntry(entry){
+      const entries = loadEntriesSafe();
 
-      pendingStop = null;
-      closeSheet();
-      refreshTodayOnly();
-      setStatus("Saved.");
+      // ensure id
+      if (!entry.id){
+        entry.id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      }
+
+      entries.push(entry);
+      saveEntriesSafe(entries);
+
+      refreshToday();
     }
 
-    sheetBackdrop.addEventListener("click", () => commitPendingWithBeads(0));
-    btnBeadSave.addEventListener("click", () => commitPendingWithBeads(beadCountInput.value));
-    btnBeadSkip.addEventListener("click", () => commitPendingWithBeads(0));
+    function stopTimer(){
+      if (!running) return;
 
-    // Buttons
-    btnStart.addEventListener("click", () => {
-      if (isRunning) return;
-      if (!ensureCanStart()) return;
-
-      isRunning = true;
-      isPaused = false;
-      startEpochMs = Date.now();
-      pausedAccumMs = 0;
-      pauseStartMs = null;
-
-      startTicker();
-      renderTimer();
-      setStatus("Running");
-      btnPause.textContent = "Pause";
-    });
-
-    btnPause.addEventListener("click", () => {
-      if (!isRunning) return;
-
-      if (!isPaused){
-        isPaused = true;
-        pauseStartMs = Date.now();
-        btnPause.textContent = "Resume";
-      } else {
-        isPaused = false;
-        const now = Date.now();
-        pausedAccumMs += (now - pauseStartMs);
-        pauseStartMs = null;
-        btnPause.textContent = "Pause";
+      // finalize elapsed
+      if (!paused){
+        elapsedMs += (Date.now() - startEpoch);
       }
-      renderTimer();
-    });
 
-    btnStop.addEventListener("click", () => {
-      if (!isRunning) return;
+      const endHMS = nowHMS();
+      const order = orderSelect.value;
+      const task = taskSelect.value;
 
-      const endEpoch = Date.now();
-      const durationMs = elapsedMsNow();
-
-      isRunning = false;
-      isPaused = false;
-      stopTicker();
-
-      const startDate = new Date(startEpochMs);
-      const endDate = new Date(endEpoch);
-
-      pendingStop = {
-        id: uuid(),
-        order: orderInput.value.trim(),
-        task: taskSelect.value,
-        date: formatDateMMDDYYYY(endDate),
-        start_time: formatTimeHHMMSS(startDate),
-        end_time: formatTimeHHMMSS(endDate),
-        duration_ms: Math.max(0, durationMs),
+      const entry = {
+        id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        date: sessionDate || formatMMDDYYYY(new Date()),
+        order,
+        task,
+        start_time: sessionStartHMS || nowHMS(),
+        end_time: endHMS,
+        duration_ms: elapsedMs,
         bead_count: 0
       };
 
-      startEpochMs = null;
-      pausedAccumMs = 0;
-      pauseStartMs = null;
-      timerDisplay.textContent = "00:00:00";
-      btnPause.textContent = "Pause";
+      // reset timer state immediately (UI)
+      running = false;
+      paused = false;
+      startEpoch = null;
+      elapsedMs = 0;
+      if (tickHandle) clearInterval(tickHandle);
+      tickHandle = null;
+      renderTimer();
 
-      if (TASKS_REQUIRE_BEAD_COUNT.has(pendingStop.task)){
-        openSheet();
-      } else {
-        commitPendingWithBeads(0);
+      // bead count prompt if needed
+      if (BEAD_TASKS.has(task)){
+        openBeadSheet(entry);
+      }else{
+        commitEntry(entry);
       }
+    }
+
+    // Bead sheet buttons
+    btnBeadSkip.addEventListener("click", ()=>{
+      if (!pendingStopEntry) return;
+      pendingStopEntry.bead_count = 0;
+      commitEntry(pendingStopEntry);
+      closeBeadSheet();
     });
 
-    // Today summary: only “Total Time Today:” + “X hours Y minutes”
-    const todayTotalEl = document.getElementById("todayTotal");
+    btnBeadSave.addEventListener("click", ()=>{
+      if (!pendingStopEntry) return;
+      const n = parseInt(String(beadCountInput.value||"0"), 10);
+      pendingStopEntry.bead_count = Number.isFinite(n) && n >= 0 ? n : 0;
+      commitEntry(pendingStopEntry);
+      closeBeadSheet();
+    });
 
-    function msToHoursMinutes(ms){
-      const totalMin = Math.floor(Math.max(0, ms) / 60000);
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
-      return `${h} hours ${m} minutes`;
-    }
+    // Buttons
+    btnStart.addEventListener("click", startTimer);
+    btnPause.addEventListener("click", pauseTimer);
+    btnStop.addEventListener("click", stopTimer);
 
-    function refreshTodayOnly(){
-      const order = getCurrentOrder() || orderInput.value.trim();
-      const today = todayMMDDYYYY();
+    // Initialize
+    buildOrderOptions();
+    buildTaskOptions();
+    renderTimer();
+    refreshToday();
 
-      const entries = loadEntries();
-      const todayMs = entries
-        .filter(e => e.date === today && String(e.order) === String(order))
-        .reduce((a,e) => a + (e.duration_ms || 0), 0);
-
-      todayTotalEl.textContent = msToHoursMinutes(todayMs);
-    }
-
-    refreshTodayOnly();
+    // Reset today at midnight (best effort)
+    setInterval(()=>{
+      refreshToday();
+    }, 60 * 1000);
   </script>
+
 </body>
 </html>
-
-
-
