@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Analytics</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+
+    <div class="topbar">
+      <button class="hamburger" id="btnMenu" aria-label="Open menu">☰</button>
+      <h1 class="title">Analytics</h1>
+      <div class="spacer44"></div>
+    </div>
+
+    <!-- Drawer -->
+    <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+    <aside class="drawer" id="drawer" aria-label="Menu">
+      <a href="index.html">Timer</a>
+      <a href="entries.html">Entries</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="export.html">Export / Backup</a>
+    </aside>
+
+    <div class="card">
+      <div class="row">
+        <div class="field">
+          <label for="yearSelect">Year</label>
+          <select id="yearSelect">
+            <option value="">— Choose year —</option>
+          </select>
+        </div>
+
+        <div class="field" id="orderBlock" style="display:none;">
+          <label for="orderSelect">Order</label>
+          <select id="orderSelect">
+            <option value="__ALL__">All orders</option>
+          </select>
+          <div class="smallNote">Orders shown are only those with entries in the selected year.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="sectionTitle">Summary</div>
+      <div class="row">
+        <div class="field"><div class="badge">Total: <span id="sumTotal">—</span></div></div>
+        <div class="field"><div class="badge">Sessions: <span id="sumSessions">—</span></div></div>
+        <div class="field"><div class="badge">Avg session: <span id="sumAvg">—</span></div></div>
+        <div class="field"><div class="badge">Longest: <span id="sumLongest">—</span></div></div>
+        <div class="field"><div class="badge">Most-used: <span id="sumMostUsed">—</span></div></div>
+        <div class="field"><div class="badge">Total beads: <span id="sumBeads">—</span></div></div>
+      </div>
+      <div class="smallNote">Bar chart shows time by task for the selected Year/Order.</div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="sectionTitle">Time by Task (hours)</div>
+      <canvas id="barChart" height="160"></canvas>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    initDrawer();
+
+    const yearSelect = document.getElementById("yearSelect");
+    const orderBlock = document.getElementById("orderBlock");
+    const orderSelect = document.getElementById("orderSelect");
+
+    const sumTotal = document.getElementById("sumTotal");
+    const sumSessions = document.getElementById("sumSessions");
+    const sumAvg = document.getElementById("sumAvg");
+    const sumLongest = document.getElementById("sumLongest");
+    const sumMostUsed = document.getElementById("sumMostUsed");
+    const sumBeads = document.getElementById("sumBeads");
+
+    let chart = null;
+
+    function hours(ms){ return ms / 3600000; }
+
+    function getYears(){
+      const entries = loadEntries();
+      const years = new Set();
+      for (const e of entries){
+        const y = getYearFromMMDDYYYY(e.date);
+        if (y) years.add(y);
+      }
+      return Array.from(years).sort((a,b)=>b-a);
+    }
+
+    function getOrdersForYear(year){
+      const entries = filterEntries({ year });
+      const orders = new Set(entries.map(e => String(e.order)));
+      return Array.from(orders).sort((a,b)=> {
+        // numeric sort if possible
+        const na = Number(a), nb = Number(b);
+        const aNum = Number.isFinite(na), bNum = Number.isFinite(nb);
+        if (aNum && bNum) return na - nb;
+        return a.localeCompare(b);
+      });
+    }
+
+    function fillYears(){
+      const years = getYears();
+      for (const y of years){
+        const opt = document.createElement("option");
+        opt.value = String(y);
+        opt.textContent = String(y);
+        yearSelect.appendChild(opt);
+      }
+    }
+
+    function fillOrders(year){
+      orderSelect.innerHTML = `<option value="__ALL__">All orders</option>`;
+      const orders = getOrdersForYear(year);
+      for (const o of orders){
+        const opt = document.createElement("option");
+        opt.value = o;
+        opt.textContent = `Order ${o}`;
+        orderSelect.appendChild(opt);
+      }
+    }
+
+    function render(){
+      const yearVal = yearSelect.value;
+      if (!yearVal){
+        orderBlock.style.display = "none";
+        sumTotal.textContent = "—";
+        sumSessions.textContent = "—";
+        sumAvg.textContent = "—";
+        sumLongest.textContent = "—";
+        sumMostUsed.textContent = "—";
+        sumBeads.textContent = "—";
+        if (chart) { chart.destroy(); chart = null; }
+        return;
+      }
+
+      const year = Number.parseInt(yearVal, 10);
+      orderBlock.style.display = "block";
+
+      const order = orderSelect.value;
+
+      const entries = filterEntries({ year, order });
+      const s = summarize(entries);
+
+      sumTotal.textContent = msToHuman(s.totalMs);
+      sumSessions.textContent = String(s.sessions);
+      sumAvg.textContent = msToHuman(s.avgMs);
+      sumLongest.textContent = msToHuman(s.longestMs);
+      sumMostUsed.textContent = s.mostUsedTask;
+      sumBeads.textContent = String(s.totalBeads);
+
+      // Build bar chart in task order
+      const labels = TASKS.slice();
+      const data = labels.map(t => hours(s.byTaskMs[t] || 0));
+
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById("barChart"), {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{ label: "Hours", data }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, title: { display: true, text: "Hours" } }
+          }
+        }
+      });
+    }
+
+    fillYears();
+
+    yearSelect.addEventListener("change", () => {
+      const y = yearSelect.value ? Number.parseInt(yearSelect.value, 10) : null;
+      if (y){
+        fillOrders(y);
+        // default to all orders
+        orderSelect.value = "__ALL__";
+      }
+      render();
+    });
+
+    orderSelect.addEventListener("change", render);
+
+    // If you want a sensible default:
+    // auto-select most recent year if exists
+    const years = getYears();
+    if (years.length > 0){
+      yearSelect.value = String(years[0]);
+      fillOrders(years[0]);
+      orderSelect.value = "__ALL__";
+      render();
+    }
+  </script>
+</body>
+</html>
