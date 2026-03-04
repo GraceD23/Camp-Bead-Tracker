@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Entries</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+
+    <div class="topbar">
+      <button class="hamburger" id="btnMenu" aria-label="Open menu">☰</button>
+      <h1 class="title">Entries</h1>
+      <div class="spacer44"></div>
+    </div>
+
+    <!-- Drawer -->
+    <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+    <aside class="drawer" id="drawer" aria-label="Menu">
+      <a href="index.html">Timer</a>
+      <a href="entries.html">Entries</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="export.html">Export / Backup</a>
+    </aside>
+
+    <div class="card">
+      <div class="row">
+        <div class="field">
+          <label for="orderFilter">Order</label>
+          <input id="orderFilter" type="text" placeholder="e.g., 104 (blank = all)" />
+        </div>
+        <div class="field">
+          <label for="taskFilter">Task</label>
+          <select id="taskFilter">
+            <option value="__ALL__">All tasks</option>
+          </select>
+        </div>
+      </div>
+      <div class="smallNote">Newest first. Delete removes an entry permanently (local only).</div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="sectionTitle">Session list</div>
+      <div class="list" id="entriesList"></div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    initDrawer();
+
+    const orderFilter = document.getElementById("orderFilter");
+    const taskFilter = document.getElementById("taskFilter");
+    const entriesList = document.getElementById("entriesList");
+
+    TASKS.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      taskFilter.appendChild(opt);
+    });
+
+    function render(){
+      const order = orderFilter.value.trim();
+      const task = taskFilter.value;
+
+      let entries = loadEntries().slice().reverse();
+      if (order) entries = entries.filter(e => String(e.order) === String(order));
+      if (task && task !== "__ALL__") entries = entries.filter(e => e.task === task);
+
+      entriesList.innerHTML = "";
+      if (entries.length === 0){
+        const div = document.createElement("div");
+        div.className = "smallNote";
+        div.textContent = "No matching entries.";
+        entriesList.appendChild(div);
+        return;
+      }
+
+      for (const e of entries){
+        const row = document.createElement("div");
+        row.className = "entry";
+        row.innerHTML = `
+          <div class="left">
+            <div class="main">Order ${e.order} • ${e.task}</div>
+            <div class="meta">${e.date} • ${e.start_time}–${e.end_time}</div>
+          </div>
+          <div class="right">
+            <div class="badge">${msToHuman(e.duration_ms || 0)}</div>
+            <div class="badge">Beads: ${Number.isFinite(e.bead_count) ? e.bead_count : 0}</div>
+            <button class="btn btnDanger" data-id="${e.id}">Delete</button>
+          </div>
+        `;
+        entriesList.appendChild(row);
+      }
+
+      entriesList.querySelectorAll("button[data-id]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          deleteEntryById(id);
+          render();
+        });
+      });
+    }
+
+    orderFilter.addEventListener("input", render);
+    taskFilter.addEventListener("change", render);
+
+    render();
+  </script>
+</body>
+</html>

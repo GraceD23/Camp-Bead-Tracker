@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Analytics</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+
+    <div class="topbar">
+      <button class="hamburger" id="btnMenu">☰</button>
+      <h1 class="title">Analytics</h1>
+      <div class="spacer44"></div>
+    </div>
+
+    <div class="backdrop" id="backdrop"></div>
+    <aside class="drawer" id="drawer">
+      <a href="index.html">Timer</a>
+      <a href="entries.html">Entries</a>
+      <a href="analytics.html">Analytics</a>
+      <a href="export.html">Export / Backup</a>
+    </aside>
+
+    <div class="card">
+      <label>Year</label>
+      <select id="yearSelect">
+        <option value="">Select year</option>
+      </select>
+
+      <label style="margin-top:10px;">Order</label>
+      <select id="orderSelect">
+        <option value="__ALL__">All Orders</option>
+      </select>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="sectionTitle">Summary</div>
+      <div id="summary"></div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <canvas id="chart"></canvas>
+    </div>
+
+  </div>
+
+<script src="app.js"></script>
+<script>
+initDrawer();
+
+const yearSelect = document.getElementById("yearSelect");
+const orderSelect = document.getElementById("orderSelect");
+const summary = document.getElementById("summary");
+let chart = null;
+
+function populateYears(){
+  const entries = loadEntries();
+  const years = new Set();
+  entries.forEach(e => years.add(getYearFromMMDDYYYY(e.date)));
+  [...years].sort().forEach(y=>{
+    const opt=document.createElement("option");
+    opt.value=y; opt.textContent=y;
+    yearSelect.appendChild(opt);
+  });
+}
+
+function populateOrders(year){
+  orderSelect.innerHTML='<option value="__ALL__">All Orders</option>';
+  const entries=filterEntries({year});
+  const orders=[...new Set(entries.map(e=>e.order))];
+  orders.forEach(o=>{
+    const opt=document.createElement("option");
+    opt.value=o; opt.textContent="Order "+o;
+    orderSelect.appendChild(opt);
+  });
+}
+
+function render(){
+  const year=parseInt(yearSelect.value);
+  const order=orderSelect.value;
+  const entries=filterEntries({year,order});
+
+  const s=summarize(entries);
+  summary.innerHTML=`
+  Total: ${msToHuman(s.totalMs)}<br>
+  Sessions: ${s.sessions}<br>
+  Avg: ${msToHuman(s.avgMs)}<br>
+  Longest: ${msToHuman(s.longestMs)}<br>
+  Most Used: ${s.mostUsedTask}<br>
+  Total Beads: ${s.totalBeads}
+  `;
+
+  const labels=TASKS;
+  const data=labels.map(t=>(s.byTaskMs[t]||0)/3600000);
+
+  if(chart) chart.destroy();
+  chart=new Chart(document.getElementById("chart"),{
+    type:"bar",
+    data:{labels,datasets:[{data,label:"Hours"}]},
+    options:{plugins:{legend:{display:false}}}
+  });
+}
+
+yearSelect.addEventListener("change",()=>{
+  populateOrders(parseInt(yearSelect.value));
+  render();
+});
+
+orderSelect.addEventListener("change",render);
+
+populateYears();
+</script>
+</body>
+</html>

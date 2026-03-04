@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Export</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+<div class="topbar">
+<button class="hamburger" id="btnMenu">☰</button>
+<h1 class="title">Export / Backup</h1>
+<div class="spacer44"></div>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+<aside class="drawer" id="drawer">
+<a href="index.html">Timer</a>
+<a href="entries.html">Entries</a>
+<a href="analytics.html">Analytics</a>
+<a href="export.html">Export / Backup</a>
+</aside>
+
+<div class="card">
+<button class="btn" id="exportCSV">Export CSV</button>
+<button class="btn" id="exportJSON">Backup JSON</button>
+<input type="file" id="importFile">
+<button class="btn btnDanger" id="importJSON">Import JSON</button>
+</div>
+
+</div>
+
+<script src="app.js"></script>
+<script>
+initDrawer();
+
+function download(filename,text){
+const blob=new Blob([text]);
+const url=URL.createObjectURL(blob);
+const a=document.createElement("a");
+a.href=url;
+a.download=filename;
+a.click();
+URL.revokeObjectURL(url);
+}
+
+document.getElementById("exportCSV").onclick=()=>{
+const entries=loadEntries();
+let csv="order,task,date,start,end,duration_ms,beads\n";
+entries.forEach(e=>{
+csv+=`${e.order},${e.task},${e.date},${e.start_time},${e.end_time},${e.duration_ms},${e.bead_count}\n`;
+});
+download("bead_data.csv",csv);
+};
+
+document.getElementById("exportJSON").onclick=()=>{
+download("bead_backup.json",JSON.stringify(loadEntries(),null,2));
+};
+
+document.getElementById("importJSON").onclick=async()=>{
+const file=document.getElementById("importFile").files[0];
+if(!file) return;
+const text=await file.text();
+const data=JSON.parse(text);
+saveEntries(data);
+alert("Import complete");
+};
+</script>
+
+</body>
+</html>
