@@ -311,4 +311,46 @@ select, input[type="text"], input[type="number"]{
   line-height:1.4;
 }
 
+/* ---------- BACKGROUND ---------- */
+
+body{
+  background-image: url("assets/background.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ---------- HEADER ---------- */
+
+.headerImage{
+  width:90%;
+  max-width:800px;
+  display:block;
+  margin:20px auto;
+}
+
+/* ---------- START BUTTON ---------- */
+
+.startButton{
+  width:70%;
+  max-width:450px;
+  display:block;
+  margin:40px auto;
+  cursor:pointer;
+}
+
+.startButton img{
+  width:100%;
+  height:auto;
+  display:block;
+}
+
+/* timer styling */
+
+.timerDisplay{
+  text-align:center;
+  font-size:42px;
+  font-weight:bold;
+  margin-top:10px;
+}
 
