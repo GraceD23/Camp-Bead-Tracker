@@ -1,13 +1,14 @@
 // ===========================
-// Storage keys
+// Bead Tracker - app.js
+// Shared constants + storage + helpers + drawer behavior
 // ===========================
+
+// ---- Storage keys ----
 const KEY_ENTRIES = "beadTimerEntries";
 const KEY_CURRENT_ORDER = "beadTimerCurrentOrder";
 const KEY_LAST_TASK = "beadTimerLastTask";
 
-// ===========================
-// Fixed task list (exact)
-// ===========================
+// ---- Canonical task list (exact) ----
 const TASKS = [
   "Airbrush",
   "Starter Coat",
@@ -17,6 +18,7 @@ const TASKS = [
   "Detail (Side B)"
 ];
 
+// ---- Tasks that require bead count prompt after STOP ----
 const TASKS_REQUIRE_BEAD_COUNT = new Set([
   "Starter Coat",
   "Base Coat",
@@ -26,7 +28,7 @@ const TASKS_REQUIRE_BEAD_COUNT = new Set([
 ]);
 
 // ===========================
-// Helpers
+// Formatting helpers
 // ===========================
 function pad2(n){ return String(n).padStart(2, "0"); }
 
@@ -42,7 +44,7 @@ function formatTimeHHMMSS(d){
 }
 
 function msToHMS(ms){
-  const totalSec = Math.floor(ms / 1000);
+  const totalSec = Math.max(0, Math.floor((ms || 0) / 1000));
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
@@ -50,7 +52,7 @@ function msToHMS(ms){
 }
 
 function msToHuman(ms){
-  const totalSec = Math.floor(ms / 1000);
+  const totalSec = Math.max(0, Math.floor((ms || 0) / 1000));
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
@@ -64,6 +66,24 @@ function safeParseInt(v, fallback = 0){
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
+function uuid(){
+  return `e_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function todayMMDDYYYY(){
+  return formatDateMMDDYYYY(new Date());
+}
+
+function getYearFromMMDDYYYY(s){
+  const parts = String(s || "").split("/");
+  if (parts.length !== 3) return null;
+  const y = Number.parseInt(parts[2], 10);
+  return Number.isFinite(y) ? y : null;
+}
+
+// ===========================
+// Storage helpers
+// ===========================
 function loadEntries(){
   try{
     const raw = localStorage.getItem(KEY_ENTRIES);
@@ -75,7 +95,7 @@ function loadEntries(){
 }
 
 function saveEntries(entries){
-  localStorage.setItem(KEY_ENTRIES, JSON.stringify(entries));
+  localStorage.setItem(KEY_ENTRIES, JSON.stringify(entries || []));
 }
 
 function addEntry(entry){
@@ -107,23 +127,9 @@ function setLastTask(task){
   localStorage.setItem(KEY_LAST_TASK, String(task ?? ""));
 }
 
-function uuid(){
-  // Good-enough for local-only IDs
-  return `e_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-}
-
-function getYearFromMMDDYYYY(s){
-  // "03/04/2026" -> 2026
-  const parts = String(s).split("/");
-  if (parts.length !== 3) return null;
-  const y = Number.parseInt(parts[2], 10);
-  return Number.isFinite(y) ? y : null;
-}
-
-function todayMMDDYYYY(){
-  return formatDateMMDDYYYY(new Date());
-}
-
+// ===========================
+// Filtering + summarizing
+// ===========================
 function filterEntries({ year=null, order=null, task=null } = {}){
   let entries = loadEntries();
 
@@ -139,7 +145,6 @@ function filterEntries({ year=null, order=null, task=null } = {}){
   return entries;
 }
 
-// Summaries for analytics
 function summarize(entries){
   const totalMs = entries.reduce((a,e) => a + (e.duration_ms || 0), 0);
   const sessions = entries.length;
@@ -156,7 +161,6 @@ function summarize(entries){
     totalBeads += (Number.isFinite(e.bead_count) ? e.bead_count : 0);
   }
 
-  // most used by total time
   let mostUsedTask = "—";
   let mostUsedMs = -1;
   for (const [t, ms] of Object.entries(byTaskMs)){
@@ -169,7 +173,10 @@ function summarize(entries){
   const avgMs = sessions > 0 ? totalMs / sessions : 0;
 
   return {
-    totalMs, sessions, longestMs, avgMs,
+    totalMs,
+    sessions,
+    longestMs,
+    avgMs,
     mostUsedTask,
     byTaskMs,
     byTaskCount,
@@ -177,7 +184,10 @@ function summarize(entries){
   };
 }
 
-// Drawer wiring (shared)
+// ===========================
+// Drawer (Hamburger menu)
+// iOS click-through fix: z-index handled in CSS, plus stopPropagation and scroll lock here.
+// ===========================
 function initDrawer(){
   const btn = document.getElementById("btnMenu");
   const drawer = document.getElementById("drawer");
@@ -187,15 +197,36 @@ function initDrawer(){
   function open(){
     drawer.classList.add("open");
     backdrop.classList.add("open");
+    document.body.style.overflow = "hidden"; // lock background scroll (iOS)
   }
+
   function close(){
     drawer.classList.remove("open");
     backdrop.classList.remove("open");
+    document.body.style.overflow = ""; // restore scroll
   }
 
-  btn.addEventListener("click", open);
-  backdrop.addEventListener("click", close);
+  // Prevent clicks/taps inside the drawer from bubbling to page content.
+  drawer.addEventListener("click", (e) => e.stopPropagation());
 
-  // Close when clicking a link
-  drawer.querySelectorAll("a").forEach(a => a.addEventListener("click", close));
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    open();
+  });
+
+  // Clicking the dimmed area closes menu.
+  backdrop.addEventListener("click", (e) => {
+    e.stopPropagation();
+    close();
+  });
+
+  // Close when selecting a link
+  drawer.querySelectorAll("a").forEach(a => {
+    a.addEventListener("click", close);
+  });
+
+  // Escape to close (desktop convenience)
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") close();
+  });
 }
