@@ -14,13 +14,16 @@
    =========================== */
 
 :root{
-  /* Your exact colors */
-  --block-pink: #F968D4;     /* rectangles: Order/Task/Pause/Stop */
-  --block-today: #BC33E2;    /* rectangle: Today summary */
-  --text-on-pink: #BC33E2;   /* font on pink blocks */
-  --text-on-today: #F768D5;  /* font on today block */
+  /* Blocks */
+  --block-pink: #F968D4;     /* Order/Task/Pause/Stop rectangles */
+  --block-today: #BC33E2;    /* Today summary rectangle */
+  --text-on-pink: #BC33E2;   /* Font color on pink blocks */
+  --text-on-today: #F768D5;  /* Font color on today block */
 
-  /* General UI */
+  /* Timer text color (home page) */
+  --timer-purple: #AC00DE;
+
+  /* General */
   --page-text: rgba(50, 0, 60, 0.92);
   --muted: rgba(50, 0, 60, 0.65);
 
@@ -43,17 +46,21 @@ html, body{
 
 body{
   margin: 0;
-  min-height: 100vh;
-  padding: 18px;
+  min-height: 100svh;
+  padding: 10px;
 
   font-family: "FromWhereYouAre", sans-serif;
   color: var(--page-text);
 
-  /* Your background artwork */
+  /* Your painted background */
   background-image: url("assets/background.jpg");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+
+  /* Important: allow other pages (Entries) to scroll */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 button,
@@ -68,64 +75,29 @@ a{
 }
 
 /* ===========================
-   LAYOUT WRAPPERS
+   TIMER PAGE FIT (no scroll)
+   This works when your index.html uses .timerScreen wrapper.
+   =========================== */
+
+.timerScreen{
+  height: 100svh;
+  overflow: hidden; /* prevents scrolling on timer page */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* ===========================
+   COMMON WRAPPERS
    =========================== */
 
 .container{
-  width: min(720px, 100%);
+  width: min(520px, 94vw);
   margin: 0 auto;
-  position: relative; /* allows absolutely-positioned flower icon on timer page */
+  position: relative;
 }
-
-.topbar{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.title{
-  font-size: 30px;
-  font-weight: 900;
-  margin: 0;
-  letter-spacing: 0.2px;
-}
-
-.spacer44{ width: 44px; }
-
-/* ===========================
-   “BLOCK” STYLE (your rectangles)
-   Use these classes wherever you want the pink/purple blocks.
-   =========================== */
-
-.blockPink{
-  background: var(--block-pink);
-  color: var(--text-on-pink);
-  border-radius: 14px;
-  padding: 12px 16px;
-  box-shadow: var(--shadow);
-}
-
-.blockToday{
-  background: var(--block-today);
-  color: var(--text-on-today);
-  border-radius: 16px;
-  padding: 14px 18px;
-  box-shadow: var(--shadow);
-}
-
-/* Optional: make block text pop a bit */
-.blockPink,
-.blockToday{
-  font-size: 22px;
-  font-weight: 900;
-  letter-spacing: 0.2px;
-}
-
-/* ===========================
-   CARDS (generic panels used on pages)
-   =========================== */
 
 .card{
   background: var(--card-bg);
@@ -148,7 +120,23 @@ a{
 }
 
 /* ===========================
-   FORM ROWS
+   BLOCK STYLES (your rectangles)
+   =========================== */
+
+.blockPink{
+  background: var(--block-pink);
+  color: var(--text-on-pink);
+  box-shadow: var(--shadow);
+}
+
+.blockToday{
+  background: var(--block-today);
+  color: var(--text-on-today);
+  box-shadow: var(--shadow);
+}
+
+/* ===========================
+   FORMS
    =========================== */
 
 .row{
@@ -203,12 +191,8 @@ input:focus, select:focus{
   color: rgba(160, 0, 0, 0.92);
 }
 
-/* If you want Pause/Stop to be the pink blocks automatically on timer page,
-   you can give those buttons a class="blockPink" in index.html.
-   (CSS is ready for it.) */
-
 /* ===========================
-   LIST + ENTRIES
+   ENTRIES LIST (and iPhone overlap fix)
    =========================== */
 
 .list{
@@ -229,20 +213,18 @@ input:focus, select:focus{
   background: rgba(255,255,255,0.80);
 }
 
-.entry .left{
-  min-width: 0;
-}
+.entry .left{ min-width: 0; }
 
 .entry .main{
   font-size: 20px;
   font-weight: 900;
-  line-height: 1.35; /* helps iOS overlap issues */
+  line-height: 1.35;
 }
 
 .entry .meta{
   color: var(--muted);
   font-size: 16px;
-  line-height: 1.35; /* helps iOS overlap issues */
+  line-height: 1.35;
 }
 
 .entry .right{
@@ -262,7 +244,7 @@ input:focus, select:focus{
   font-weight: 900;
 }
 
-/* Mobile layout fix for entries */
+/* Mobile layout fix */
 @media (max-width: 600px) {
   .row{ flex-direction: column; }
 
@@ -279,20 +261,9 @@ input:focus, select:focus{
 }
 
 /* ===========================
-   DRAWER / SIDEBAR (iPhone click-through fix)
+   DRAWER / SIDEBAR (with PNG buttons)
+   - iPhone click-through fix included
    =========================== */
-
-.hamburger{
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: 1px solid var(--card-bd);
-  background: rgba(255,255,255,0.80);
-  cursor: pointer;
-  font-size: 20px;
-  font-weight: 900;
-  line-height: 1;
-}
 
 .backdrop{
   position: fixed;
@@ -300,7 +271,7 @@ input:focus, select:focus{
   background: rgba(0,0,0,0.35);
   display: none;
 
-  /* critical for iOS */
+  /* iOS tap/click reliability */
   z-index: 999;
   pointer-events: auto;
   touch-action: none;
@@ -313,31 +284,66 @@ input:focus, select:focus{
   top: 0;
   left: 0;
   height: 100%;
-  width: 280px;
-  padding: 16px;
-
-  background: rgba(255,255,255,0.96);
-  border-right: 1px solid rgba(0,0,0,0.12);
+  width: 300px;
+  padding: 18px 16px;
 
   transform: translateX(-102%);
   transition: transform 0.18s ease;
 
-  z-index: 1000; /* above backdrop */
+  z-index: 1000;
 }
 
 .drawer.open{ transform: translateX(0); }
 
-.drawer a{
-  display: block;
-  text-decoration: none;
-  padding: 12px 10px;
-  border-radius: 14px;
-  font-size: 22px;
-  font-weight: 900;
+/* ART drawer look */
+.drawer-art{
+  background: #F768D5; /* pink background like your mockup */
 }
 
-.drawer a:hover{
-  background: rgba(0,0,0,0.06);
+/* Emoji row at top */
+.drawerEmoji{
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+  margin-bottom: 18px;
+}
+
+.drawerEmoji img{
+  width: 190px;
+  height: auto;
+  display: block;
+}
+
+/* Button stack */
+.drawerMenu{
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.drawerBtn{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+}
+
+.drawerBtn img{
+  width: 100%;
+  max-width: 270px;
+  height: auto;
+  display: block;
+}
+
+.drawerBtn:active img{
+  transform: translateY(2px);
+}
+
+/* Smaller iPhones */
+@media (max-width: 390px){
+  .drawer{ width: 280px; }
+  .drawerEmoji img{ width: 170px; }
+  .drawerBtn img{ max-width: 250px; }
 }
 
 /* ===========================
@@ -398,24 +404,11 @@ input:focus, select:focus{
 }
 
 /* ===========================
-   TIMER PAGE HELPERS (generic)
+   TIMER COLOR OVERRIDE (homepage)
+   Works with either id="timerDisplay" or class="timerDisplay"
    =========================== */
 
-.timerWrap{
-  margin-top: 14px;
-  text-align: center;
+#timerDisplay,
+.timerDisplay{
+  color: var(--timer-purple);
 }
-
-.controls{
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.statusLine{
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 16px;
-}
-
