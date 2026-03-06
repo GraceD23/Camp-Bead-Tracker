@@ -392,3 +392,19 @@ width:200px;
 
 }
 
+.inlineField,
+.controlBlock{
+  font-family:"FromWhereYouAre", sans-serif !important;
+  color:#BC33E2;
+}
+
+input,
+select,
+button{
+  -webkit-appearance:none;
+  appearance:none;
+  font-family:"FromWhereYouAre", sans-serif !important;
+}
+
+
+
