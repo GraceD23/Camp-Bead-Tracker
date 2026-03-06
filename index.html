@@ -125,13 +125,13 @@
       tasks.forEach(t => {
         const opt = document.createElement("option");
         opt.value = t;
-        opt.textContent = `Task: ${t}`;
+       opt.textContent = t;
         taskSelect.appendChild(opt);
       });
 
       const addOpt = document.createElement("option");
       addOpt.value = "__ADD__";
-      addOpt.textContent = "Task: Add Task...";
+      addOpt.textContent = "Add Task...";
       taskSelect.appendChild(addOpt);
 
       if (selected && tasks.includes(selected)) {
@@ -285,4 +285,5 @@
   </script>
 </body>
 </html>
+
 
