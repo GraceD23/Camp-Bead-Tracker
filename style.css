@@ -76,6 +76,7 @@ width:100%;
 
 .field{
 flex:1;
+margin-bottom:12px;
 }
 
 .inlineBlock{
@@ -426,6 +427,7 @@ select{
 option{
   color:#AC00DE;
 }
+
 
 
 
