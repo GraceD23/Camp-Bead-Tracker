@@ -6,13 +6,10 @@
   <title>Entries</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
-  <!-- SIDEBAR BACKDROP -->
   <div class="backdrop" id="backdrop" aria-hidden="true"></div>
 
-  <!-- SIDEBAR (PNG MENU) -->
   <aside class="drawer" id="drawer" aria-label="Menu">
     <div class="drawerEmoji">
       <img src="assets/emojis.png" alt="">
@@ -26,17 +23,15 @@
     </nav>
   </aside>
 
-  <!-- PAGE CONTENT -->
   <div class="container">
 
-    <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
-      <button class="btn" id="btnMenu" aria-label="Open menu">Menu</button>
-      <h1 class="title" style="margin:0;">Entries</h1>
-      <div style="width:44px;height:44px;"></div>
-    </div>
-
-    <div class="card">
+    <div class="card" style="margin-top:10px;">
       <div class="row">
+        <button class="btn" id="btnMenu">Menu</button>
+        <button class="btn" id="btnClearFilters">Clear</button>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
         <div class="field">
           <label for="orderFilter">Order</label>
           <select id="orderFilter"></select>
@@ -56,25 +51,17 @@
             <option value="oldest">Oldest first</option>
           </select>
         </div>
-
-        <div class="field">
-          <label>&nbsp;</label>
-          <button class="btn" id="btnClearFilters">Clear filters</button>
-        </div>
       </div>
-
-      <p class="smallNote" id="countNote" style="margin-top:10px;"></p>
     </div>
 
     <div class="list" id="entriesList" style="margin-top:12px;"></div>
 
   </div>
 
-  <!-- EDIT SHEET -->
   <div class="sheetBackdrop" id="editBackdrop" aria-hidden="true"></div>
   <div class="sheet" id="editSheet" role="dialog" aria-modal="true" aria-label="Edit entry">
     <div class="sheetHandle"></div>
-    <h2 class="sheetTitle">Edit Entry</h2>
+    <h2 class="sheetTitle">Edit</h2>
 
     <div class="sheetRow">
       <div class="field">
@@ -82,16 +69,14 @@
         <select id="editTask"></select>
       </div>
 
-      <div class="row">
-        <div class="field">
-          <label for="editStart">Start time</label>
-          <!-- type="time" uses device time picker (internally 24h, display to user varies) -->
-          <input id="editStart" type="time" step="1" />
-        </div>
-        <div class="field">
-          <label for="editEnd">End time</label>
-          <input id="editEnd" type="time" step="1" />
-        </div>
+      <div class="field">
+        <label for="editStart">Start time</label>
+        <input id="editStart" type="text" placeholder="3:45 PM" />
+      </div>
+
+      <div class="field">
+        <label for="editEnd">End time</label>
+        <input id="editEnd" type="text" placeholder="4:10 PM" />
       </div>
 
       <div class="field">
@@ -99,9 +84,9 @@
         <input id="editBeads" type="number" min="0" step="1" inputmode="numeric" />
       </div>
 
-      <div class="row">
-        <button class="btn" id="btnEditSave">Save</button>
+      <div class="sheetBtns">
         <button class="btn" id="btnEditCancel">Cancel</button>
+        <button class="btn" id="btnEditSave">Save</button>
       </div>
 
       <p class="smallNote" id="editNote"></p>
@@ -110,178 +95,97 @@
 
   <script src="app.js"></script>
   <script>
-    // Drawer
-    if (typeof initDrawer === "function") initDrawer();
+    initDrawer();
 
-    // ---------- Storage helpers (use app.js if present) ----------
-    function loadEntriesSafe(){
-      if (typeof loadEntries === "function") return loadEntries();
-      try{
-        const raw = localStorage.getItem("cbt_entries");
-        return raw ? JSON.parse(raw) : [];
-      }catch(e){
-        return [];
-      }
-    }
-
-    function saveEntriesSafe(entries){
-      if (typeof saveEntries === "function") return saveEntries(entries);
-      localStorage.setItem("cbt_entries", JSON.stringify(entries));
-    }
-
-    // ---------- Task list ----------
-    const TASKS_FALLBACK = [
-      "Airbrush","Starter Coat","Base Coat","Laser","Detail (Side A)","Detail (Side B)"
-    ];
-    const TASKS_LIST = (typeof TASKS !== "undefined" && Array.isArray(TASKS) && TASKS.length)
-      ? TASKS
-      : TASKS_FALLBACK;
-
-    // ---------- Time formatting (NO military time display) ----------
-    function pad2(n){ return String(n).padStart(2,"0"); }
-
-    function parseHMS(t){
-      // accepts "HH:MM:SS" or "HH:MM"
-      const s = String(t||"").trim();
-      const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
-      if (!m) return null;
-      const hh = +m[1], mm = +m[2], ss = m[3] ? +m[3] : 0;
-      if (hh<0||hh>23||mm<0||mm>59||ss<0||ss>59) return null;
-      return { hh, mm, ss };
-    }
-
-    function hmsToSeconds(hms){
-      return hms.hh*3600 + hms.mm*60 + hms.ss;
-    }
-
-    function secondsToHMS(sec){
-      sec = ((sec % 86400) + 86400) % 86400;
-      const hh = Math.floor(sec/3600);
-      const mm = Math.floor((sec%3600)/60);
-      const ss = sec%60;
-      return { hh, mm, ss };
-    }
-
-    function to12h(t){
-      const p = parseHMS(t);
-      if (!p) return t || "";
-      let h = p.hh;
-      const ampm = h >= 12 ? "PM" : "AM";
-      h = h % 12;
-      if (h === 0) h = 12;
-      return `${h}:${pad2(p.mm)}${p.ss ? ":"+pad2(p.ss) : ""} ${ampm}`;
-    }
-
-    function toTimeInputValue(t){
-      const p = parseHMS(t);
-      if (!p) return "";
-      return `${pad2(p.hh)}:${pad2(p.mm)}:${pad2(p.ss)}`;
-    }
-
-    function fromTimeInputValue(v){
-      // "HH:MM" or "HH:MM:SS"
-      const p = parseHMS(v);
-      if (!p) return "";
-      return `${pad2(p.hh)}:${pad2(p.mm)}:${pad2(p.ss)}`;
-    }
-
-    function msToNiceDuration(ms){
-      ms = Math.max(0, Number(ms||0));
-      const totalMin = Math.round(ms/60000);
-      const h = Math.floor(totalMin/60);
-      const m = totalMin % 60;
-      if (h === 0) return `${m}m`;
-      return `${h}h ${m}m`;
-    }
-
-    function safeInt(x, d=0){
-      const n = parseInt(String(x??"").trim(), 10);
-      return Number.isFinite(n) ? n : d;
-    }
-
-    function uniq(arr){ return Array.from(new Set(arr)); }
-
-    // ---------- UI elements ----------
     const orderFilter = document.getElementById("orderFilter");
-    const taskFilter  = document.getElementById("taskFilter");
-    const sortSelect  = document.getElementById("sortSelect");
+    const taskFilter = document.getElementById("taskFilter");
+    const sortSelect = document.getElementById("sortSelect");
     const btnClearFilters = document.getElementById("btnClearFilters");
     const entriesList = document.getElementById("entriesList");
-    const countNote   = document.getElementById("countNote");
 
-    // Edit sheet
     const editBackdrop = document.getElementById("editBackdrop");
     const editSheet = document.getElementById("editSheet");
     const editTask = document.getElementById("editTask");
     const editStart = document.getElementById("editStart");
     const editEnd = document.getElementById("editEnd");
     const editBeads = document.getElementById("editBeads");
-    const btnEditSave = document.getElementById("btnEditSave");
     const btnEditCancel = document.getElementById("btnEditCancel");
+    const btnEditSave = document.getElementById("btnEditSave");
     const editNote = document.getElementById("editNote");
 
-    // Fill task dropdowns
-    function fillTaskSelect(sel, includeAll){
-      sel.innerHTML = "";
-      if (includeAll){
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = "All tasks";
-        sel.appendChild(opt);
-      }
-      TASKS_LIST.forEach(t=>{
-        const opt = document.createElement("option");
-        opt.value = t;
-        opt.textContent = t;
-        sel.appendChild(opt);
-      });
-    }
+    let editingId = null;
 
-    // Build order dropdown from stored orders
-    function fillOrderSelect(sel, orders){
-      sel.innerHTML = "";
-      const optAll = document.createElement("option");
-      optAll.value = "";
-      optAll.textContent = "All orders";
-      sel.appendChild(optAll);
+    function fillFilters() {
+      const entries = loadEntries();
+      const orders = uniq(
+        entries.map(e => String(e.order || "").trim()).filter(Boolean)
+      ).sort((a, b) => a.localeCompare(b));
 
-      orders.forEach(o=>{
+      const tasks = getTasks();
+
+      const prevOrder = orderFilter.value;
+      const prevTask = taskFilter.value;
+
+      orderFilter.innerHTML = `<option value="">All orders</option>`;
+      orders.forEach(o => {
         const opt = document.createElement("option");
         opt.value = o;
         opt.textContent = o;
-        sel.appendChild(opt);
+        orderFilter.appendChild(opt);
+      });
+      if ([...orderFilter.options].some(o => o.value === prevOrder)) {
+        orderFilter.value = prevOrder;
+      }
+
+      taskFilter.innerHTML = `<option value="">All tasks</option>`;
+      tasks.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        taskFilter.appendChild(opt);
+      });
+      if ([...taskFilter.options].some(o => o.value === prevTask)) {
+        taskFilter.value = prevTask;
+      }
+
+      editTask.innerHTML = "";
+      tasks.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t;
+        opt.textContent = t;
+        editTask.appendChild(opt);
       });
     }
 
-    fillTaskSelect(taskFilter, true);
-    fillTaskSelect(editTask, false);
+    function sortKey(e) {
+      const p = parseMMDDYYYY(e.date);
+      const y = p ? p.yyyy : 0;
+      const m = p ? p.mm : 0;
+      const d = p ? p.dd : 0;
+      const t = parseHMS(e.end_time);
+      const sec = t ? hmsToSeconds(t) : 0;
+      return y * 1e9 + m * 1e7 + d * 1e5 + sec;
+    }
 
-    // ---------- Render ----------
-    let editingId = null;
-
-    function openEdit(entry){
+    function openEdit(entry) {
       editingId = entry.id;
-      editNote.textContent = "";
-
-      editTask.value = entry.task || TASKS_LIST[0] || "";
-      editStart.value = toTimeInputValue(entry.start_time);
-      editEnd.value = toTimeInputValue(entry.end_time);
+      editTask.value = entry.task || "";
+      editStart.value = to12h(entry.start_time);
+      editEnd.value = to12h(entry.end_time);
       editBeads.value = String(entry.bead_count ?? 0);
+      editNote.textContent = "";
 
       editBackdrop.classList.add("open");
       editSheet.classList.add("open");
     }
 
-    function closeEdit(){
+    function closeEdit() {
       editingId = null;
       editBackdrop.classList.remove("open");
       editSheet.classList.remove("open");
     }
 
-    editBackdrop.addEventListener("click", closeEdit);
-    btnEditCancel.addEventListener("click", closeEdit);
-
-    function recomputeDurationMs(startHMS, endHMS){
+    function recomputeDurationMs(startHMS, endHMS) {
       const ps = parseHMS(startHMS);
       const pe = parseHMS(endHMS);
       if (!ps || !pe) return null;
@@ -289,158 +193,130 @@
       let s = hmsToSeconds(ps);
       let e = hmsToSeconds(pe);
 
-      // If end is earlier than start, assume it crossed midnight
       if (e < s) e += 86400;
 
       return (e - s) * 1000;
     }
 
-    btnEditSave.addEventListener("click", ()=>{
-      if (!editingId) return;
-
-      const entries = loadEntriesSafe();
+    async function saveEdit() {
+      const entries = loadEntries();
       const idx = entries.findIndex(e => String(e.id) === String(editingId));
-      if (idx < 0){
+
+      if (idx < 0) {
         editNote.textContent = "Could not find that entry.";
         return;
       }
 
-      const newTask = String(editTask.value || "").trim();
-      const newStart = fromTimeInputValue(editStart.value);
-      const newEnd = fromTimeInputValue(editEnd.value);
-      const newBeads = Math.max(0, safeInt(editBeads.value, 0));
+      const task = String(editTask.value || "").trim();
+      const start = parse12h(editStart.value);
+      const end = parse12h(editEnd.value);
+      const beads = Math.max(0, safeInt(editBeads.value, 0));
 
-      if (!newTask){
+      if (!task) {
         editNote.textContent = "Choose a task.";
         return;
       }
-      if (!newStart || !newEnd){
-        editNote.textContent = "Enter both start and end time.";
+
+      if (!start || !end) {
+        editNote.textContent = "Use times like 3:45 PM.";
         return;
       }
 
-      const dur = recomputeDurationMs(newStart, newEnd);
-      if (dur == null){
-        editNote.textContent = "Invalid time format.";
+      const duration = recomputeDurationMs(start, end);
+      if (duration == null) {
+        editNote.textContent = "Invalid time.";
         return;
       }
 
-      // Update the entry
       entries[idx] = {
         ...entries[idx],
-        task: newTask,
-        start_time: newStart,
-        end_time: newEnd,
-        bead_count: newBeads,
-        duration_ms: dur
+        task,
+        start_time: start,
+        end_time: end,
+        bead_count: beads,
+        duration_ms: duration
       };
 
-      saveEntriesSafe(entries);
+      saveEntries(entries);
+
+      try {
+        await syncPullThenPush();
+      } catch (e) {}
+
       closeEdit();
-      render();
-    });
-
-    function deleteEntry(id){
-      const ok = confirm("Delete this entry?");
-      if (!ok) return;
-
-      const entries = loadEntriesSafe().filter(e => String(e.id) !== String(id));
-      saveEntriesSafe(entries);
+      fillFilters();
       render();
     }
 
-    function render(){
-      const entries = loadEntriesSafe();
+    async function deleteEntry(id) {
+      const ok = confirm("Delete this entry?");
+      if (!ok) return;
 
-      const orders = uniq(
-        entries.map(e => String(e.order||"").trim()).filter(Boolean)
-      ).sort((a,b)=>a.localeCompare(b));
+      const entries = loadEntries().filter(e => String(e.id) !== String(id));
+      saveEntries(entries);
 
-      // keep current filter values if possible
-      const prevOrder = orderFilter.value;
-      fillOrderSelect(orderFilter, orders);
-      orderFilter.value = orders.includes(prevOrder) ? prevOrder : (prevOrder ? "" : "");
+      try {
+        await syncPullThenPush();
+      } catch (e) {}
 
-      const selectedOrder = String(orderFilter.value || "");
-      const selectedTask = String(taskFilter.value || "");
-      const sortMode = sortSelect.value || "newest";
+      fillFilters();
+      render();
+    }
 
-      let filtered = entries.slice();
+    function render() {
+      let entries = loadEntries().slice();
 
-      if (selectedOrder){
-        filtered = filtered.filter(e => String(e.order||"").trim() === selectedOrder);
-      }
-      if (selectedTask){
-        filtered = filtered.filter(e => String(e.task||"").trim() === selectedTask);
+      if (orderFilter.value) {
+        entries = entries.filter(e => String(e.order || "").trim() === orderFilter.value);
       }
 
-      // sort by date + end_time (best effort)
-      function sortKey(e){
-        const d = String(e.date||"");
-        const p = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d);
-        const y = p ? +p[3] : 0;
-        const m = p ? +p[1] : 0;
-        const da = p ? +p[2] : 0;
-        const t = parseHMS(e.end_time) ? hmsToSeconds(parseHMS(e.end_time)) : 0;
-        return y*1e9 + m*1e7 + da*1e5 + t;
+      if (taskFilter.value) {
+        entries = entries.filter(e => String(e.task || "").trim() === taskFilter.value);
       }
 
-      filtered.sort((a,b)=>{
-        const ka = sortKey(a);
-        const kb = sortKey(b);
-        return sortMode === "oldest" ? (ka - kb) : (kb - ka);
-      });
-
-      countNote.textContent = `${filtered.length} entries shown`;
+      entries.sort((a, b) =>
+        sortSelect.value === "oldest"
+          ? sortKey(a) - sortKey(b)
+          : sortKey(b) - sortKey(a)
+      );
 
       entriesList.innerHTML = "";
-      if (!filtered.length){
-        const empty = document.createElement("div");
-        empty.className = "card";
-        empty.textContent = "No entries match your filters.";
-        entriesList.appendChild(empty);
+
+      if (!entries.length) {
+        entriesList.innerHTML = `<div class="card">No entries.</div>`;
         return;
       }
 
-      filtered.forEach(e=>{
-        const wrap = document.createElement("div");
-        wrap.className = "entry";
+      entries.forEach(e => {
+        const card = document.createElement("div");
+        card.className = "entry";
 
         const left = document.createElement("div");
         left.className = "left";
-
-        const main = document.createElement("div");
-        main.className = "main";
-        main.textContent = `${e.order || "Order"} · ${e.task || "Task"}`;
-
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        const start12 = to12h(e.start_time);
-        const end12 = to12h(e.end_time);
-        meta.textContent = `${e.date || ""} · ${start12} – ${end12} · ${msToNiceDuration(e.duration_ms)} · Beads: ${e.bead_count ?? 0}`;
-
-        left.appendChild(main);
-        left.appendChild(meta);
+        left.innerHTML = `
+          <div class="main">${e.order} · ${e.task}</div>
+          <div class="meta">${e.date} · ${to12h(e.start_time)} – ${to12h(e.end_time)} · ${msToHuman(e.duration_ms)} · Beads: ${e.bead_count ?? 0}</div>
+        `;
 
         const right = document.createElement("div");
         right.className = "right";
 
-        const btnEdit = document.createElement("button");
-        btnEdit.className = "btn";
-        btnEdit.textContent = "Edit";
-        btnEdit.addEventListener("click", ()=>openEdit(e));
+        const editBtn = document.createElement("button");
+        editBtn.className = "btn";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", () => openEdit(e));
 
-        const btnDel = document.createElement("button");
-        btnDel.className = "btn btnDanger";
-        btnDel.textContent = "Delete";
-        btnDel.addEventListener("click", ()=>deleteEntry(e.id));
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "btn btnDanger";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => deleteEntry(e.id));
 
-        right.appendChild(btnEdit);
-        right.appendChild(btnDel);
+        right.appendChild(editBtn);
+        right.appendChild(deleteBtn);
 
-        wrap.appendChild(left);
-        wrap.appendChild(right);
-        entriesList.appendChild(wrap);
+        card.appendChild(left);
+        card.appendChild(right);
+        entriesList.appendChild(card);
       });
     }
 
@@ -448,14 +324,29 @@
     taskFilter.addEventListener("change", render);
     sortSelect.addEventListener("change", render);
 
-    btnClearFilters.addEventListener("click", ()=>{
+    btnClearFilters.addEventListener("click", () => {
       orderFilter.value = "";
       taskFilter.value = "";
       sortSelect.value = "newest";
       render();
     });
 
-    render();
+    editBackdrop.addEventListener("click", closeEdit);
+    btnEditCancel.addEventListener("click", closeEdit);
+    btnEditSave.addEventListener("click", saveEdit);
+
+    if (getGitHubToken()) {
+      pullFromGitHub().then(() => {
+        fillFilters();
+        render();
+      }).catch(() => {
+        fillFilters();
+        render();
+      });
+    } else {
+      fillFilters();
+      render();
+    }
   </script>
 </body>
 </html>
