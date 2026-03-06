@@ -408,10 +408,23 @@ button{
   appearance:none;
   font-family:"FromWhereYouAre", sans-serif !important;
   font-size:16px;
+  color:#AC00DE
 }
 
 #beadCountInput{
   font-size:16px;
+}
+
+input::placeholder{
+  color:#AC00DE;
+}
+
+select{
+  color:#AC00DE;
+}
+
+option{
+  color:#AC00DE;
 }
 
 
