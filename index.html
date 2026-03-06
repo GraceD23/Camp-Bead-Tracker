@@ -8,10 +8,8 @@
 </head>
 <body>
 
-  <!-- SIDEBAR BACKDROP -->
   <div class="backdrop" id="backdrop" aria-hidden="true"></div>
 
-  <!-- SIDEBAR -->
   <aside class="drawer" id="drawer" aria-label="Menu">
     <div class="drawerEmoji">
       <img src="assets/emojis.png" alt="">
@@ -25,7 +23,6 @@
     </nav>
   </aside>
 
-  <!-- MAIN TIMER SCREEN -->
   <div class="timerScreen">
 
     <div class="container">
@@ -80,7 +77,6 @@
 
   </div>
 
-  <!-- BEAD COUNT SHEET -->
   <div class="sheetBackdrop" id="sheetBackdrop" aria-hidden="true"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Bead count">
     <div class="sheetHandle"></div>
@@ -102,28 +98,6 @@
   <script>
     initDrawer();
 
-    const DEFAULT_TASKS = [
-      "Airbrush",
-      "Starter Coat",
-      "Base Coat",
-      "Laser",
-      "Detail (Side A)",
-      "Detail (Side B)"
-    ];
-
-    const TASKS_REQUIRE_BEAD_COUNT = new Set([
-      "Starter Coat",
-      "Base Coat",
-      "Laser",
-      "Detail (Side A)",
-      "Detail (Side B)"
-    ]);
-
-    const KEY_ENTRIES = "cbt_entries";
-    const KEY_TASKS = "cbt_tasks";
-    const KEY_SETTINGS = "cbt_settings";
-    const KEY_ACTIVE_TIMER = "cbt_active_timer";
-
     const orderInput = document.getElementById("orderInput");
     const taskSelect = document.getElementById("taskSelect");
     const timerDisplay = document.getElementById("timerDisplay");
@@ -139,135 +113,6 @@
     const btnBeadSave = document.getElementById("btnBeadSave");
 
     let tickHandle = null;
-
-    function pad2(n) {
-      return String(n).padStart(2, "0");
-    }
-
-    function nowDate() {
-      return new Date();
-    }
-
-    function formatDateMMDDYYYY(d) {
-      return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
-    }
-
-    function formatTimeHHMMSS(d) {
-      return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-    }
-
-    function msToHMS(ms) {
-      const totalSec = Math.max(0, Math.floor((ms || 0) / 1000));
-      const h = Math.floor(totalSec / 3600);
-      const m = Math.floor((totalSec % 3600) / 60);
-      const s = totalSec % 60;
-      return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
-    }
-
-    function msToHoursMinutesWords(ms) {
-      const totalMin = Math.floor(Math.max(0, ms) / 60000);
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
-      return `${h} hours ${m} minutes`;
-    }
-
-    function safeInt(v, d = 0) {
-      const n = parseInt(String(v ?? "").trim(), 10);
-      return Number.isFinite(n) ? n : d;
-    }
-
-    function uuid() {
-      return `e_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-    }
-
-    function uniq(arr) {
-      return Array.from(new Set(arr));
-    }
-
-    function loadEntries() {
-      try {
-        return JSON.parse(localStorage.getItem(KEY_ENTRIES) || "[]");
-      } catch {
-        return [];
-      }
-    }
-
-    function saveEntries(entries) {
-      localStorage.setItem(KEY_ENTRIES, JSON.stringify(entries || []));
-    }
-
-    function getTasks() {
-      try {
-        const stored = JSON.parse(localStorage.getItem(KEY_TASKS) || "[]");
-        return uniq([...DEFAULT_TASKS, ...stored.filter(Boolean).map(String)]);
-      } catch {
-        return [...DEFAULT_TASKS];
-      }
-    }
-
-    function saveTasks(tasks) {
-      const merged = uniq([...DEFAULT_TASKS, ...(tasks || []).filter(Boolean).map(String)]);
-      localStorage.setItem(KEY_TASKS, JSON.stringify(merged));
-    }
-
-    function addTask(task) {
-      const t = String(task || "").trim();
-      if (!t) return getTasks();
-      const tasks = getTasks();
-      if (!tasks.includes(t)) tasks.push(t);
-      saveTasks(tasks);
-      return tasks;
-    }
-
-    function getSettings() {
-      try {
-        return JSON.parse(localStorage.getItem(KEY_SETTINGS) || "{}");
-      } catch {
-        return {};
-      }
-    }
-
-    function saveSettings(obj) {
-      localStorage.setItem(KEY_SETTINGS, JSON.stringify(obj || {}));
-    }
-
-    function getActiveTimer() {
-      try {
-        return JSON.parse(localStorage.getItem(KEY_ACTIVE_TIMER) || "null");
-      } catch {
-        return null;
-      }
-    }
-
-    function setActiveTimer(t) {
-      localStorage.setItem(KEY_ACTIVE_TIMER, JSON.stringify(t));
-    }
-
-    function clearActiveTimer() {
-      localStorage.removeItem(KEY_ACTIVE_TIMER);
-    }
-
-    function currentElapsedMs(active) {
-      if (!active) return 0;
-      if (active.isPaused) return Number(active.elapsedMs || 0);
-      return Number(active.elapsedMs || 0) + Math.max(0, Date.now() - Number(active.startedAtMs || 0));
-    }
-
-    function computeTodayMs(entries, includeActive = true) {
-      const today = formatDateMMDDYYYY(new Date());
-      let ms = (entries || [])
-        .filter(e => e.date === today)
-        .reduce((a, e) => a + Number(e.duration_ms || 0), 0);
-
-      if (includeActive) {
-        const active = getActiveTimer();
-        if (active && active.sessionDate === today) {
-          ms += currentElapsedMs(active);
-        }
-      }
-
-      return ms;
-    }
 
     function refreshToday() {
       todayTotal.textContent = msToHoursMinutesWords(computeTodayMs(loadEntries(), true));
@@ -323,69 +168,6 @@
     function closeSheet() {
       sheetBackdrop.classList.remove("open");
       sheet.classList.remove("open");
-    }
-
-    function startNewTimer(order, task) {
-      const d = new Date();
-      const active = {
-        order: String(order || "").trim(),
-        task: String(task || "").trim(),
-        isPaused: false,
-        elapsedMs: 0,
-        startedAtMs: Date.now(),
-        sessionStartMs: Date.now(),
-        sessionDate: formatDateMMDDYYYY(d),
-        startTime: formatTimeHHMMSS(d)
-      };
-      setActiveTimer(active);
-      return active;
-    }
-
-    function pauseResumeTimer() {
-      const active = getActiveTimer();
-      if (!active) return null;
-
-      if (active.isPaused) {
-        active.isPaused = false;
-        active.startedAtMs = Date.now();
-      } else {
-        active.elapsedMs = currentElapsedMs(active);
-        active.isPaused = true;
-      }
-
-      setActiveTimer(active);
-      return active;
-    }
-
-    function stopTimerAndSave(beadCount = 0) {
-      const active = getActiveTimer();
-      if (!active) return null;
-
-      const endMs = Date.now();
-      const elapsed = active.isPaused
-        ? Number(active.elapsedMs || 0)
-        : Number(active.elapsedMs || 0) + Math.max(0, endMs - Number(active.startedAtMs || endMs));
-
-      const endDate = new Date(endMs);
-
-      const entry = {
-        id: uuid(),
-        order: active.order,
-        task: active.task,
-        date: active.sessionDate || formatDateMMDDYYYY(endDate),
-        start_time: active.startTime || formatTimeHHMMSS(new Date(active.sessionStartMs || endMs)),
-        end_time: formatTimeHHMMSS(endDate),
-        duration_ms: elapsed,
-        bead_count: safeInt(beadCount, 0)
-      };
-
-      clearActiveTimer();
-
-      const entries = loadEntries();
-      entries.push(entry);
-      saveEntries(entries);
-
-      return entry;
     }
 
     taskSelect.addEventListener("change", () => {
@@ -456,14 +238,14 @@
       renderTimer();
     });
 
-    btnStop.addEventListener("click", () => {
+    btnStop.addEventListener("click", async () => {
       const active = getActiveTimer();
       if (!active) return;
 
       if (TASKS_REQUIRE_BEAD_COUNT.has(active.task)) {
         openSheet();
       } else {
-        stopTimerAndSave(0);
+        await stopTimerAndSave(0);
         closeSheet();
         renderTimer();
       }
@@ -471,14 +253,14 @@
 
     sheetBackdrop.addEventListener("click", closeSheet);
 
-    btnBeadSkip.addEventListener("click", () => {
-      stopTimerAndSave(0);
+    btnBeadSkip.addEventListener("click", async () => {
+      await stopTimerAndSave(0);
       closeSheet();
       renderTimer();
     });
 
-    btnBeadSave.addEventListener("click", () => {
-      stopTimerAndSave(safeInt(beadCountInput.value, 0));
+    btnBeadSave.addEventListener("click", async () => {
+      await stopTimerAndSave(safeInt(beadCountInput.value, 0));
       closeSheet();
       renderTimer();
     });
@@ -486,8 +268,18 @@
     const settings = getSettings();
     orderInput.value = (settings.activeOrder || "").replace(/\s+order$/i, "");
     refreshTaskOptions(settings.activeTask || "");
+
     if (getActiveTimer()) startTicker();
+    else stopTicker();
+
     renderTimer();
+
+    if (getGitHubToken()) {
+      pullFromGitHub().then(() => {
+        refreshTaskOptions(taskSelect.value);
+        renderTimer();
+      }).catch(() => {});
+    }
 
     setInterval(refreshToday, 60000);
   </script>
