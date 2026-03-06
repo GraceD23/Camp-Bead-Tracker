@@ -6,13 +6,12 @@
   <title>Timer</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
 
   <!-- SIDEBAR BACKDROP -->
   <div class="backdrop" id="backdrop" aria-hidden="true"></div>
 
-  <!-- SIDEBAR (PNG MENU) -->
+  <!-- SIDEBAR -->
   <aside class="drawer" id="drawer" aria-label="Menu">
     <div class="drawerEmoji">
       <img src="assets/emojis.png" alt="">
@@ -26,64 +25,62 @@
     </nav>
   </aside>
 
-  <!-- TIMER SCREEN (fits iPhone) -->
+  <!-- MAIN TIMER SCREEN -->
   <div class="timerScreen">
 
-    <!-- Header image -->
-    <div class="container" style="width:min(520px,94vw);">
+    <div class="container">
       <img src="assets/header.png" class="headerImage" alt="Camp Beads">
     </div>
 
-    <!-- Order + Task row -->
-    <div class="container" style="width:min(520px,94vw);">
+    <div class="container">
       <div class="row">
         <div class="field">
-          <select id="orderSelect" class="blockPink" aria-label="Order"></select>
+          <div class="blockPink inlineBlock">
+            <span class="prefix">Order:</span>
+            <input id="orderInput" class="inlineField" type="text" placeholder="March" />
+          </div>
         </div>
 
         <div class="field">
-          <select id="taskSelect" class="blockPink" aria-label="Task"></select>
+          <div class="blockPink inlineBlock">
+            <span class="prefix">Task:</span>
+            <select id="taskSelect" class="inlineField" aria-label="Task"></select>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Timer row (flower + timer) -->
-    <div class="container" style="width:min(520px,94vw); display:flex; align-items:center; justify-content:center; gap:14px;">
-      <button class="btn" id="btnMenu" aria-label="Open menu" style="padding:0; border:none; background:transparent;">
-        <img src="assets/flower.png" alt="Menu" style="display:block; width:64px; height:auto;">
+    <div class="timerRow">
+      <button class="flowerBtn" id="btnMenu" aria-label="Open menu">
+        <img src="assets/flower.png" alt="">
       </button>
 
-      <div id="timerDisplay" class="timerDisplay" style="font-size: clamp(38px, 10vw, 56px); font-weight: 900;">
-        00:00:00
-      </div>
+      <div id="timerDisplay" class="timerDisplay">00:00:00</div>
     </div>
 
-    <!-- Start button (image button) -->
-    <div class="container" style="width:min(520px,94vw); display:flex; justify-content:center;">
-      <button class="startImgBtn" id="btnStart" aria-label="Start" style="border:none; background:transparent; padding:0;">
+    <div class="container" style="display:flex; justify-content:center;">
+      <button class="startImgBtn" id="btnStart" aria-label="Start">
         <img src="assets/start.png" alt="Start">
       </button>
     </div>
 
-    <!-- Pause / Stop -->
-    <div class="container" style="width:min(520px,94vw);">
-      <div class="row">
-        <button class="btn blockPink controlBlock" id="btnPause" style="width:100%; border:none;">Pause</button>
-        <button class="btn blockPink controlBlock" id="btnStop" style="width:100%; border:none;">Stop</button>
+    <div class="container">
+      <div class="controlRow">
+        <button class="controlBlock blockPink" id="btnPause">Pause</button>
+        <button class="controlBlock blockPink" id="btnStop">Stop</button>
       </div>
     </div>
 
-    <!-- Total time today -->
-    <div class="container" style="width:min(520px,94vw);">
-      <div class="blockToday todayBlock" style="border-radius:18px; padding:12px 16px; text-align:center;">
-        <div class="todayTitle" style="font-size:24px; font-weight:900;">Total Time Today:</div>
-        <div id="todayTotal" class="todayValue" style="font-size:24px; font-weight:900;">0 hours 0 minutes</div>
+    <div class="container">
+      <div class="todayBlock blockToday">
+        <div class="todayTitle">Total Time Today:</div>
+        <div id="todayTotal" class="todayValue">0 hours 0 minutes</div>
       </div>
     </div>
 
   </div>
 
-  <!-- Bead Count Sheet (used when Stop is pressed for certain tasks) -->
+  <!-- BEAD COUNT SHEET -->
   <div class="sheetBackdrop" id="sheetBackdrop" aria-hidden="true"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Bead count">
     <div class="sheetHandle"></div>
@@ -103,332 +100,396 @@
 
   <script src="app.js"></script>
   <script>
-    // Drawer
-    if (typeof initDrawer === "function") initDrawer();
+    initDrawer();
 
-    // ---- Task list ----
-    const TASKS_FALLBACK = [
-      "Airbrush","Starter Coat","Base Coat","Laser","Detail (Side A)","Detail (Side B)"
+    const DEFAULT_TASKS = [
+      "Airbrush",
+      "Starter Coat",
+      "Base Coat",
+      "Laser",
+      "Detail (Side A)",
+      "Detail (Side B)"
     ];
-    const TASKS_LIST = (typeof TASKS !== "undefined" && Array.isArray(TASKS) && TASKS.length)
-      ? TASKS
-      : TASKS_FALLBACK;
 
-    // Tasks that require bead count prompt
-    const BEAD_TASKS = new Set(["Starter Coat","Base Coat","Laser","Detail (Side A)","Detail (Side B)"]);
+    const TASKS_REQUIRE_BEAD_COUNT = new Set([
+      "Starter Coat",
+      "Base Coat",
+      "Laser",
+      "Detail (Side A)",
+      "Detail (Side B)"
+    ]);
 
-    // ---- Storage helpers (use app.js if available) ----
-    function loadEntriesSafe(){
-      if (typeof loadEntries === "function") return loadEntries();
-      try{
-        const raw = localStorage.getItem("cbt_entries");
-        return raw ? JSON.parse(raw) : [];
-      }catch(e){ return []; }
-    }
+    const KEY_ENTRIES = "cbt_entries";
+    const KEY_TASKS = "cbt_tasks";
+    const KEY_SETTINGS = "cbt_settings";
+    const KEY_ACTIVE_TIMER = "cbt_active_timer";
 
-    function saveEntriesSafe(entries){
-      if (typeof saveEntries === "function") return saveEntries(entries);
-      localStorage.setItem("cbt_entries", JSON.stringify(entries));
-    }
-
-    function loadSettings(){
-      try{
-        const raw = localStorage.getItem("cbt_settings");
-        return raw ? JSON.parse(raw) : {};
-      }catch(e){ return {}; }
-    }
-
-    function saveSettings(obj){
-      localStorage.setItem("cbt_settings", JSON.stringify(obj || {}));
-    }
-
-    // ---- DOM ----
-    const orderSelect = document.getElementById("orderSelect");
-    const taskSelect  = document.getElementById("taskSelect");
+    const orderInput = document.getElementById("orderInput");
+    const taskSelect = document.getElementById("taskSelect");
     const timerDisplay = document.getElementById("timerDisplay");
-
     const btnStart = document.getElementById("btnStart");
     const btnPause = document.getElementById("btnPause");
-    const btnStop  = document.getElementById("btnStop");
-
+    const btnStop = document.getElementById("btnStop");
     const todayTotal = document.getElementById("todayTotal");
 
-    // Bead sheet
     const sheetBackdrop = document.getElementById("sheetBackdrop");
     const sheet = document.getElementById("sheet");
     const beadCountInput = document.getElementById("beadCountInput");
     const btnBeadSkip = document.getElementById("btnBeadSkip");
     const btnBeadSave = document.getElementById("btnBeadSave");
-    const sheetNote = document.getElementById("sheetNote");
 
-    // ---- Utilities ----
-    function pad2(n){ return String(n).padStart(2,"0"); }
+    let tickHandle = null;
 
-    function nowHMS(){
-      const d = new Date();
+    function pad2(n) {
+      return String(n).padStart(2, "0");
+    }
+
+    function nowDate() {
+      return new Date();
+    }
+
+    function formatDateMMDDYYYY(d) {
+      return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
+    }
+
+    function formatTimeHHMMSS(d) {
       return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
     }
 
-    function formatMMDDYYYY(d){
-      return `${pad2(d.getMonth()+1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
+    function msToHMS(ms) {
+      const totalSec = Math.max(0, Math.floor((ms || 0) / 1000));
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
     }
 
-    function msToHMS(ms){
-      ms = Math.max(0, Number(ms||0));
-      const s = Math.floor(ms/1000);
-      const hh = pad2(Math.floor(s/3600));
-      const mm = pad2(Math.floor((s%3600)/60));
-      const ss = pad2(s%60);
-      return `${hh}:${mm}:${ss}`;
-    }
-
-    function msToHoursMinutes(ms){
-      const totalMin = Math.floor(Math.max(0, ms)/60000);
-      const h = Math.floor(totalMin/60);
+    function msToHoursMinutesWords(ms) {
+      const totalMin = Math.floor(Math.max(0, ms) / 60000);
+      const h = Math.floor(totalMin / 60);
       const m = totalMin % 60;
-      return {h,m};
+      return `${h} hours ${m} minutes`;
     }
 
-    function todayKey(){
-      return formatMMDDYYYY(new Date());
+    function safeInt(v, d = 0) {
+      const n = parseInt(String(v ?? "").trim(), 10);
+      return Number.isFinite(n) ? n : d;
     }
 
-    function computeTodayTotal(entries){
-      const key = todayKey();
-      const ms = (entries||[])
-        .filter(e => e && e.date === key)
-        .reduce((a,e)=>a + Number(e.duration_ms||0), 0);
-      return ms;
+    function uuid() {
+      return `e_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     }
 
-    function refreshToday(){
-      const ms = computeTodayTotal(loadEntriesSafe());
-      const hm = msToHoursMinutes(ms);
-      todayTotal.textContent = `${hm.h} hours ${hm.m} minutes`;
+    function uniq(arr) {
+      return Array.from(new Set(arr));
     }
 
-    // ---- Orders list (remember last order) ----
-    function uniq(arr){ return Array.from(new Set(arr)); }
-
-    function buildOrderOptions(){
-      const entries = loadEntriesSafe();
-      const saved = loadSettings();
-
-      // collect previous orders
-      const orders = uniq(
-        entries.map(e => String(e.order||"").trim()).filter(Boolean)
-      ).sort((a,b)=>a.localeCompare(b));
-
-      // If none exist yet, provide common months as starter options
-      const monthDefaults = [
-        "January","February","March","April","May","June","July","August","September","October","November","December"
-      ];
-
-      const all = orders.length ? orders : monthDefaults;
-
-      orderSelect.innerHTML = "";
-      all.forEach(o=>{
-        const opt = document.createElement("option");
-        opt.value = o;
-        opt.textContent = `Order: ${o}`;
-        orderSelect.appendChild(opt);
-      });
-
-      // restore last order if possible
-      if (saved && saved.activeOrder && all.includes(saved.activeOrder)){
-        orderSelect.value = saved.activeOrder;
-      }else{
-        orderSelect.value = all[0];
+    function loadEntries() {
+      try {
+        return JSON.parse(localStorage.getItem(KEY_ENTRIES) || "[]");
+      } catch {
+        return [];
       }
     }
 
-    function buildTaskOptions(){
-      const saved = loadSettings();
+    function saveEntries(entries) {
+      localStorage.setItem(KEY_ENTRIES, JSON.stringify(entries || []));
+    }
 
+    function getTasks() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(KEY_TASKS) || "[]");
+        return uniq([...DEFAULT_TASKS, ...stored.filter(Boolean).map(String)]);
+      } catch {
+        return [...DEFAULT_TASKS];
+      }
+    }
+
+    function saveTasks(tasks) {
+      const merged = uniq([...DEFAULT_TASKS, ...(tasks || []).filter(Boolean).map(String)]);
+      localStorage.setItem(KEY_TASKS, JSON.stringify(merged));
+    }
+
+    function addTask(task) {
+      const t = String(task || "").trim();
+      if (!t) return getTasks();
+      const tasks = getTasks();
+      if (!tasks.includes(t)) tasks.push(t);
+      saveTasks(tasks);
+      return tasks;
+    }
+
+    function getSettings() {
+      try {
+        return JSON.parse(localStorage.getItem(KEY_SETTINGS) || "{}");
+      } catch {
+        return {};
+      }
+    }
+
+    function saveSettings(obj) {
+      localStorage.setItem(KEY_SETTINGS, JSON.stringify(obj || {}));
+    }
+
+    function getActiveTimer() {
+      try {
+        return JSON.parse(localStorage.getItem(KEY_ACTIVE_TIMER) || "null");
+      } catch {
+        return null;
+      }
+    }
+
+    function setActiveTimer(t) {
+      localStorage.setItem(KEY_ACTIVE_TIMER, JSON.stringify(t));
+    }
+
+    function clearActiveTimer() {
+      localStorage.removeItem(KEY_ACTIVE_TIMER);
+    }
+
+    function currentElapsedMs(active) {
+      if (!active) return 0;
+      if (active.isPaused) return Number(active.elapsedMs || 0);
+      return Number(active.elapsedMs || 0) + Math.max(0, Date.now() - Number(active.startedAtMs || 0));
+    }
+
+    function computeTodayMs(entries, includeActive = true) {
+      const today = formatDateMMDDYYYY(new Date());
+      let ms = (entries || [])
+        .filter(e => e.date === today)
+        .reduce((a, e) => a + Number(e.duration_ms || 0), 0);
+
+      if (includeActive) {
+        const active = getActiveTimer();
+        if (active && active.sessionDate === today) {
+          ms += currentElapsedMs(active);
+        }
+      }
+
+      return ms;
+    }
+
+    function refreshToday() {
+      todayTotal.textContent = msToHoursMinutesWords(computeTodayMs(loadEntries(), true));
+    }
+
+    function refreshTaskOptions(selected) {
+      const tasks = getTasks();
       taskSelect.innerHTML = "";
-      TASKS_LIST.forEach(t=>{
+
+      tasks.forEach(t => {
         const opt = document.createElement("option");
         opt.value = t;
         opt.textContent = `Task: ${t}`;
         taskSelect.appendChild(opt);
       });
 
-      if (saved && saved.activeTask && TASKS_LIST.includes(saved.activeTask)){
-        taskSelect.value = saved.activeTask;
-      }else{
-        taskSelect.value = TASKS_LIST[0] || "";
+      const addOpt = document.createElement("option");
+      addOpt.value = "__ADD__";
+      addOpt.textContent = "Task: Add Task...";
+      taskSelect.appendChild(addOpt);
+
+      if (selected && tasks.includes(selected)) {
+        taskSelect.value = selected;
+      } else if (tasks.length) {
+        taskSelect.value = tasks[0];
       }
     }
 
-    orderSelect.addEventListener("change", ()=>{
-      const s = loadSettings();
-      s.activeOrder = orderSelect.value;
-      saveSettings(s);
-    });
-
-    taskSelect.addEventListener("change", ()=>{
-      const s = loadSettings();
-      s.activeTask = taskSelect.value;
-      saveSettings(s);
-    });
-
-    // ---- Timer state ----
-    let running = false;
-    let paused = false;
-
-    let startEpoch = null;      // ms since epoch
-    let elapsedMs = 0;          // accumulated while paused
-
-    let tickHandle = null;
-
-    function renderTimer(){
-      const ms = elapsedMs + (running && !paused ? (Date.now() - startEpoch) : 0);
-      timerDisplay.textContent = msToHMS(ms);
+    function renderTimer() {
+      const active = getActiveTimer();
+      timerDisplay.textContent = active ? msToHMS(currentElapsedMs(active)) : "00:00:00";
+      btnPause.textContent = active && active.isPaused ? "Resume" : "Pause";
+      refreshToday();
     }
 
-    function startTimer(){
-      if (running && !paused) return;
-
-      if (!running){
-        running = true;
-        paused = false;
-        elapsedMs = 0;
-        startEpoch = Date.now();
-        sessionStartHMS = nowHMS();
-        sessionDate = formatMMDDYYYY(new Date());
-      }else{
-        // resume
-        paused = false;
-        startEpoch = Date.now();
-      }
-
+    function startTicker() {
       if (tickHandle) clearInterval(tickHandle);
       tickHandle = setInterval(renderTimer, 250);
-      renderTimer();
     }
 
-    function pauseTimer(){
-      if (!running) return;
-
-      if (!paused){
-        // pause
-        elapsedMs += (Date.now() - startEpoch);
-        paused = true;
-      }else{
-        // resume
-        paused = false;
-        startEpoch = Date.now();
-      }
-      renderTimer();
+    function stopTicker() {
+      if (tickHandle) clearInterval(tickHandle);
+      tickHandle = null;
     }
 
-    // session metadata
-    let sessionStartHMS = "";
-    let sessionDate = "";
-    let pendingStopEntry = null;
-
-    function openBeadSheet(entry){
-      pendingStopEntry = entry;
-      sheetNote.textContent = "";
-      beadCountInput.value = "";
+    function openSheet() {
       sheetBackdrop.classList.add("open");
       sheet.classList.add("open");
+      beadCountInput.value = "";
+      beadCountInput.focus();
     }
 
-    function closeBeadSheet(){
-      pendingStopEntry = null;
+    function closeSheet() {
       sheetBackdrop.classList.remove("open");
       sheet.classList.remove("open");
     }
 
-    sheetBackdrop.addEventListener("click", closeBeadSheet);
-
-    function commitEntry(entry){
-      const entries = loadEntriesSafe();
-
-      // ensure id
-      if (!entry.id){
-        entry.id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-      }
-
-      entries.push(entry);
-      saveEntriesSafe(entries);
-
-      refreshToday();
+    function startNewTimer(order, task) {
+      const d = new Date();
+      const active = {
+        order: String(order || "").trim(),
+        task: String(task || "").trim(),
+        isPaused: false,
+        elapsedMs: 0,
+        startedAtMs: Date.now(),
+        sessionStartMs: Date.now(),
+        sessionDate: formatDateMMDDYYYY(d),
+        startTime: formatTimeHHMMSS(d)
+      };
+      setActiveTimer(active);
+      return active;
     }
 
-    function stopTimer(){
-      if (!running) return;
+    function pauseResumeTimer() {
+      const active = getActiveTimer();
+      if (!active) return null;
 
-      // finalize elapsed
-      if (!paused){
-        elapsedMs += (Date.now() - startEpoch);
+      if (active.isPaused) {
+        active.isPaused = false;
+        active.startedAtMs = Date.now();
+      } else {
+        active.elapsedMs = currentElapsedMs(active);
+        active.isPaused = true;
       }
 
-      const endHMS = nowHMS();
-      const order = orderSelect.value;
-      const task = taskSelect.value;
+      setActiveTimer(active);
+      return active;
+    }
+
+    function stopTimerAndSave(beadCount = 0) {
+      const active = getActiveTimer();
+      if (!active) return null;
+
+      const endMs = Date.now();
+      const elapsed = active.isPaused
+        ? Number(active.elapsedMs || 0)
+        : Number(active.elapsedMs || 0) + Math.max(0, endMs - Number(active.startedAtMs || endMs));
+
+      const endDate = new Date(endMs);
 
       const entry = {
-        id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-        date: sessionDate || formatMMDDYYYY(new Date()),
-        order,
-        task,
-        start_time: sessionStartHMS || nowHMS(),
-        end_time: endHMS,
-        duration_ms: elapsedMs,
-        bead_count: 0
+        id: uuid(),
+        order: active.order,
+        task: active.task,
+        date: active.sessionDate || formatDateMMDDYYYY(endDate),
+        start_time: active.startTime || formatTimeHHMMSS(new Date(active.sessionStartMs || endMs)),
+        end_time: formatTimeHHMMSS(endDate),
+        duration_ms: elapsed,
+        bead_count: safeInt(beadCount, 0)
       };
 
-      // reset timer state immediately (UI)
-      running = false;
-      paused = false;
-      startEpoch = null;
-      elapsedMs = 0;
-      if (tickHandle) clearInterval(tickHandle);
-      tickHandle = null;
-      renderTimer();
+      clearActiveTimer();
 
-      // bead count prompt if needed
-      if (BEAD_TASKS.has(task)){
-        openBeadSheet(entry);
-      }else{
-        commitEntry(entry);
-      }
+      const entries = loadEntries();
+      entries.push(entry);
+      saveEntries(entries);
+
+      return entry;
     }
 
-    // Bead sheet buttons
-    btnBeadSkip.addEventListener("click", ()=>{
-      if (!pendingStopEntry) return;
-      pendingStopEntry.bead_count = 0;
-      commitEntry(pendingStopEntry);
-      closeBeadSheet();
+    taskSelect.addEventListener("change", () => {
+      if (taskSelect.value === "__ADD__") {
+        const v = prompt("New task name:");
+        if (v && v.trim()) {
+          addTask(v.trim());
+          refreshTaskOptions(v.trim());
+        } else {
+          const s = getSettings();
+          refreshTaskOptions(s.activeTask || getTasks()[0] || "");
+        }
+      }
+
+      const s = getSettings();
+      if (taskSelect.value !== "__ADD__") {
+        s.activeTask = taskSelect.value;
+        saveSettings(s);
+      }
     });
 
-    btnBeadSave.addEventListener("click", ()=>{
-      if (!pendingStopEntry) return;
-      const n = parseInt(String(beadCountInput.value||"0"), 10);
-      pendingStopEntry.bead_count = Number.isFinite(n) && n >= 0 ? n : 0;
-      commitEntry(pendingStopEntry);
-      closeBeadSheet();
+    orderInput.addEventListener("change", () => {
+      const v = String(orderInput.value || "").trim().replace(/\s+order$/i, "");
+      orderInput.value = v;
+      const s = getSettings();
+      s.activeOrder = v;
+      saveSettings(s);
     });
 
-    // Buttons
-    btnStart.addEventListener("click", startTimer);
-    btnPause.addEventListener("click", pauseTimer);
-    btnStop.addEventListener("click", stopTimer);
+    btnStart.addEventListener("click", () => {
+      let order = String(orderInput.value || "").trim().replace(/\s+order$/i, "");
+      orderInput.value = order;
+      const task = String(taskSelect.value || "").trim();
 
-    // Initialize
-    buildOrderOptions();
-    buildTaskOptions();
+      if (!order) {
+        alert("Enter an order first.");
+        orderInput.focus();
+        return;
+      }
+
+      if (!task || task === "__ADD__") {
+        alert("Choose a task first.");
+        taskSelect.focus();
+        return;
+      }
+
+      const active = getActiveTimer();
+
+      if (!active) {
+        startNewTimer(order, task);
+      } else if (active.isPaused) {
+        pauseResumeTimer();
+      }
+
+      const s = getSettings();
+      s.activeOrder = order;
+      s.activeTask = task;
+      saveSettings(s);
+
+      startTicker();
+      renderTimer();
+    });
+
+    btnPause.addEventListener("click", () => {
+      const active = getActiveTimer();
+      if (!active) return;
+      pauseResumeTimer();
+      renderTimer();
+    });
+
+    btnStop.addEventListener("click", () => {
+      const active = getActiveTimer();
+      if (!active) return;
+
+      if (TASKS_REQUIRE_BEAD_COUNT.has(active.task)) {
+        openSheet();
+      } else {
+        stopTimerAndSave(0);
+        closeSheet();
+        renderTimer();
+      }
+    });
+
+    sheetBackdrop.addEventListener("click", closeSheet);
+
+    btnBeadSkip.addEventListener("click", () => {
+      stopTimerAndSave(0);
+      closeSheet();
+      renderTimer();
+    });
+
+    btnBeadSave.addEventListener("click", () => {
+      stopTimerAndSave(safeInt(beadCountInput.value, 0));
+      closeSheet();
+      renderTimer();
+    });
+
+    const settings = getSettings();
+    orderInput.value = (settings.activeOrder || "").replace(/\s+order$/i, "");
+    refreshTaskOptions(settings.activeTask || "");
+    if (getActiveTimer()) startTicker();
     renderTimer();
-    refreshToday();
 
-    // Reset today at midnight (best effort)
-    setInterval(()=>{
-      refreshToday();
-    }, 60 * 1000);
+    setInterval(refreshToday, 60000);
   </script>
-
 </body>
 </html>
