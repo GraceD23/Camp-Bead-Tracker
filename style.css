@@ -44,12 +44,13 @@ margin:auto;
 }
 
 .timerScreen{
-min-height:100vh;
-display:flex;
-flex-direction:column;
-align-items:center;
-gap:14px;
-padding-bottom:30px;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  gap:10px;
+  padding-bottom:12px;
 }
 
 /* =========================
@@ -57,8 +58,10 @@ HEADER
 ========================= */
 
 .headerImage{
-width:95%;
-max-width:700px;
+width:100%;
+max-width:520px;
+display:block;
+margin:0 auto;
 }
 
 /* =========================
@@ -404,7 +407,13 @@ button{
   -webkit-appearance:none;
   appearance:none;
   font-family:"FromWhereYouAre", sans-serif !important;
+  font-size:16px;
 }
+
+#beadCountInput{
+  font-size:16px;
+}
+
 
 
 
