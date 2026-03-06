@@ -1,240 +1,271 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Export</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Export</title>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <!-- SIDEBAR BACKDROP -->
-  <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+<div class="backdrop" id="backdrop"></div>
 
-  <!-- SIDEBAR (PNG MENU) -->
-  <aside class="drawer" id="drawer" aria-label="Menu">
-    <div class="drawerEmoji">
-      <img src="assets/emojis.png" alt="">
-    </div>
+<aside class="drawer" id="drawer">
 
-    <nav class="drawerMenu">
-      <a class="drawerBtn" href="index.html"><img src="assets/timer.png" alt="Timer"></a>
-      <a class="drawerBtn" href="entries.html"><img src="assets/entries.png" alt="Entries"></a>
-      <a class="drawerBtn" href="analytics.html"><img src="assets/analytics.png" alt="Analytics"></a>
-      <a class="drawerBtn" href="export.html"><img src="assets/export.png" alt="Export"></a>
-    </nav>
-  </aside>
+<div class="drawerEmoji">
+<img src="assets/emojis.png">
+</div>
 
-  <!-- PAGE CONTENT -->
-  <div class="container">
+<nav class="drawerMenu">
+<a class="drawerBtn" href="index.html"><img src="assets/timer.png"></a>
+<a class="drawerBtn" href="entries.html"><img src="assets/entries.png"></a>
+<a class="drawerBtn" href="analytics.html"><img src="assets/analytics.png"></a>
+<a class="drawerBtn" href="export.html"><img src="assets/export.png"></a>
+</nav>
 
-    <div class="topbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
-      <!-- menu trigger (you can swap to flower art later) -->
-      <button class="btn" id="btnMenu" aria-label="Open menu">Menu</button>
-      <h1 class="title" style="margin:0;">Export / Backup</h1>
-      <div style="width:44px;height:44px;"></div>
-    </div>
+</aside>
 
-    <div class="card">
-      <h2 class="sectionTitle">Download your data</h2>
-      <p class="smallNote" style="margin-top:6px;">
-        Use this to back up your sessions or move them to another device.
-      </p>
+<div class="container">
 
-      <div class="row" style="margin-top:12px;">
-        <button class="btn" id="btnDownloadJson">Download JSON</button>
-        <button class="btn" id="btnDownloadCsv">Download CSV</button>
-      </div>
+<div class="card" style="margin-top:10px">
 
-      <p class="smallNote" id="countsNote" style="margin-top:10px;"></p>
-    </div>
+<div class="row">
+<button class="btn" id="btnMenu">Menu</button>
+</div>
 
-    <div class="card" style="margin-top:12px;">
-      <h2 class="sectionTitle">Restore / Merge</h2>
-      <p class="smallNote" style="margin-top:6px;">
-        Select a JSON backup file you previously downloaded. This will merge entries (by id) so you don’t lose data.
-      </p>
+<div class="field" style="margin-top:12px">
 
-      <div class="row" style="margin-top:12px;">
-        <input type="file" id="fileInput" accept="application/json" />
-        <button class="btn" id="btnImport" disabled>Import</button>
-      </div>
+<label>GitHub Sync Token</label>
 
-      <p class="smallNote" id="importNote" style="margin-top:10px;"></p>
-    </div>
+<input
+id="tokenInput"
+type="password"
+placeholder="Paste token here once per device">
 
-    <div class="card" style="margin-top:12px;">
-      <h2 class="sectionTitle">Danger Zone</h2>
-      <p class="smallNote" style="margin-top:6px;">
-        This removes ALL saved entries from THIS device only. Export first if you want a backup.
-      </p>
+</div>
 
-      <button class="btn btnDanger" id="btnClearAll" style="margin-top:12px;">Delete all local entries</button>
-      <p class="smallNote" id="clearNote" style="margin-top:10px;"></p>
-    </div>
+<div class="row" style="margin-top:10px">
 
-  </div>
+<button class="btn" id="btnSaveToken">
+Save Token
+</button>
 
-  <script src="app.js"></script>
-  <script>
-    // Drawer wiring
-    if (typeof initDrawer === "function") initDrawer();
+<button class="btn" id="btnPull">
+Pull Latest
+</button>
 
-    // Use app.js storage helpers if available; otherwise fall back
-    function loadEntriesSafe(){
-      if (typeof loadEntries === "function") return loadEntries();
-      try{
-        const raw = localStorage.getItem("cbt_entries");
-        return raw ? JSON.parse(raw) : [];
-      }catch(e){
-        return [];
-      }
-    }
+<button class="btn" id="btnPush">
+Push Now
+</button>
 
-    function saveEntriesSafe(entries){
-      if (typeof saveEntries === "function") return saveEntries(entries);
-      localStorage.setItem("cbt_entries", JSON.stringify(entries));
-    }
+<button class="btn btnDanger" id="btnClearToken">
+Forget Token
+</button>
 
-    function uniqByIdMerge(existing, incoming){
-      const map = new Map();
-      (existing||[]).forEach(e => {
-        if (e && e.id != null) map.set(String(e.id), e);
-      });
-      (incoming||[]).forEach(e => {
-        if (!e || e.id == null) return;
-        const k = String(e.id);
-        if (!map.has(k)) map.set(k, e);
-      });
-      return Array.from(map.values());
-    }
+</div>
 
-    function msToHMS(ms){
-      ms = Math.max(0, Number(ms||0));
-      const s = Math.floor(ms/1000);
-      const hh = String(Math.floor(s/3600)).padStart(2,"0");
-      const mm = String(Math.floor((s%3600)/60)).padStart(2,"0");
-      const ss = String(s%60).padStart(2,"0");
-      return `${hh}:${mm}:${ss}`;
-    }
+<p class="smallNote" id="syncNote" style="margin-top:10px"></p>
 
-    function escapeCsv(val){
-      const s = String(val ?? "");
-      if (/[",\n]/.test(s)) return `"${s.replace(/"/g,'""')}"`;
-      return s;
-    }
+</div>
 
-    function entriesToCsv(entries){
-      const cols = [
-        "id","date","order","task","start_time","end_time","duration_ms","duration_hms","bead_count"
-      ];
-      const lines = [cols.join(",")];
-      (entries||[]).forEach(e=>{
-        const row = {
-          id: e.id ?? "",
-          date: e.date ?? "",
-          order: e.order ?? "",
-          task: e.task ?? "",
-          start_time: e.start_time ?? "",
-          end_time: e.end_time ?? "",
-          duration_ms: e.duration_ms ?? 0,
-          duration_hms: msToHMS(e.duration_ms ?? 0),
-          bead_count: e.bead_count ?? 0
-        };
-        lines.push(cols.map(c=>escapeCsv(row[c])).join(","));
-      });
-      return lines.join("\n");
-    }
+<div class="card" style="margin-top:12px">
 
-    function downloadText(filename, text, mime){
-      const blob = new Blob([text], { type: mime || "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }
+<h2 class="sectionTitle">Backups</h2>
 
-    const btnDownloadJson = document.getElementById("btnDownloadJson");
-    const btnDownloadCsv = document.getElementById("btnDownloadCsv");
-    const countsNote = document.getElementById("countsNote");
+<div class="row">
 
-    const fileInput = document.getElementById("fileInput");
-    const btnImport = document.getElementById("btnImport");
-    const importNote = document.getElementById("importNote");
+<button class="btn" id="btnDownloadJson">
+Download JSON
+</button>
 
-    const btnClearAll = document.getElementById("btnClearAll");
-    const clearNote = document.getElementById("clearNote");
+<button class="btn" id="btnDownloadCsv">
+Download CSV
+</button>
 
-    function refreshCounts(){
-      const entries = loadEntriesSafe();
-      countsNote.textContent = `${entries.length} total sessions stored on this device.`;
-    }
+</div>
 
-    btnDownloadJson.addEventListener("click", ()=>{
-      const entries = loadEntriesSafe();
-      const payload = {
-        exported_at: new Date().toISOString(),
-        app: "Camp-Bead-Tracker",
-        entries
-      };
-      downloadText("camp-bead-tracker-backup.json", JSON.stringify(payload, null, 2), "application/json");
-    });
+<div class="row" style="margin-top:10px">
 
-    btnDownloadCsv.addEventListener("click", ()=>{
-      const entries = loadEntriesSafe();
-      const csv = entriesToCsv(entries);
-      downloadText("camp-bead-tracker-entries.csv", csv, "text/csv");
-    });
+<input type="file" id="fileInput" accept="application/json">
 
-    fileInput.addEventListener("change", ()=>{
-      btnImport.disabled = !fileInput.files || !fileInput.files.length;
-      importNote.textContent = "";
-    });
+<button class="btn" id="btnImport">
+Import JSON
+</button>
 
-    btnImport.addEventListener("click", async ()=>{
-      if (!fileInput.files || !fileInput.files.length) return;
-      const file = fileInput.files[0];
+</div>
 
-      try{
-        const text = await file.text();
-        const obj = JSON.parse(text);
+<p class="smallNote" id="backupNote" style="margin-top:10px"></p>
 
-        // Accept either {entries:[...]} or raw array [...]
-        const incoming = Array.isArray(obj) ? obj : (obj && Array.isArray(obj.entries) ? obj.entries : null);
-        if (!incoming){
-          importNote.textContent = "That file does not look like a valid backup (missing entries).";
-          return;
-        }
+</div>
 
-        const existing = loadEntriesSafe();
-        const merged = uniqByIdMerge(existing, incoming);
-        saveEntriesSafe(merged);
+</div>
 
-        importNote.textContent = `Imported ${incoming.length} entries. Total is now ${merged.length} sessions on this device.`;
-        fileInput.value = "";
-        btnImport.disabled = true;
-        refreshCounts();
+<script src="app.js"></script>
 
-      }catch(err){
-        importNote.textContent = "Could not import that file. Make sure it is a JSON backup you downloaded from this site.";
-      }
-    });
+<script>
 
-    btnClearAll.addEventListener("click", ()=>{
-      const ok = confirm("Delete ALL local entries on this device? Export first if you want a backup.");
-      if (!ok) return;
-      saveEntriesSafe([]);
-      clearNote.textContent = "All local entries deleted (this device only).";
-      refreshCounts();
-    });
+initDrawer()
 
-    refreshCounts();
-  </script>
+const tokenInput=document.getElementById("tokenInput")
+const btnSaveToken=document.getElementById("btnSaveToken")
+const btnPull=document.getElementById("btnPull")
+const btnPush=document.getElementById("btnPush")
+const btnClearToken=document.getElementById("btnClearToken")
+const syncNote=document.getElementById("syncNote")
+
+const btnDownloadJson=document.getElementById("btnDownloadJson")
+const btnDownloadCsv=document.getElementById("btnDownloadCsv")
+const fileInput=document.getElementById("fileInput")
+const btnImport=document.getElementById("btnImport")
+const backupNote=document.getElementById("backupNote")
+
+tokenInput.value=getGitHubToken()
+
+function download(filename,text,mime="text/plain"){
+
+const blob=new Blob([text],{type:mime})
+const url=URL.createObjectURL(blob)
+
+const a=document.createElement("a")
+a.href=url
+a.download=filename
+a.click()
+
+URL.revokeObjectURL(url)
+
+}
+
+btnSaveToken.addEventListener("click",()=>{
+
+setGitHubToken(tokenInput.value.trim())
+
+syncNote.textContent="Token saved on this device"
+
+})
+
+btnClearToken.addEventListener("click",()=>{
+
+clearGitHubToken()
+tokenInput.value=""
+
+syncNote.textContent="Token removed"
+
+})
+
+btnPull.addEventListener("click",async()=>{
+
+try{
+
+await pullFromGitHub()
+
+syncNote.textContent="Pulled latest data"
+
+}catch(e){
+
+syncNote.textContent=e.message
+
+}
+
+})
+
+btnPush.addEventListener("click",async()=>{
+
+try{
+
+await pushToGitHub()
+
+syncNote.textContent="Pushed local data"
+
+}catch(e){
+
+syncNote.textContent=e.message
+
+}
+
+})
+
+btnDownloadJson.addEventListener("click",()=>{
+
+download(
+"bead-tracker-backup.json",
+JSON.stringify({
+exported:new Date().toISOString(),
+entries:loadEntries(),
+tasks:getTasks()
+},null,2),
+"application/json"
+)
+
+})
+
+btnDownloadCsv.addEventListener("click",()=>{
+
+const entries=loadEntries()
+
+const header=[
+"id",
+"date",
+"order",
+"task",
+"start_time",
+"end_time",
+"duration_ms",
+"bead_count"
+].join(",")
+
+const rows=entries.map(e=>[
+e.id,
+e.date,
+e.order,
+`"${e.task}"`,
+e.start_time,
+e.end_time,
+e.duration_ms,
+e.bead_count ?? 0
+].join(","))
+
+download(
+"bead-tracker-entries.csv",
+[header,...rows].join("\n"),
+"text/csv"
+)
+
+})
+
+btnImport.addEventListener("click",async()=>{
+
+const file=fileInput.files?.[0]
+
+if(!file){
+backupNote.textContent="Select a JSON file first"
+return
+}
+
+try{
+
+const text=await file.text()
+const data=JSON.parse(text)
+
+const incomingEntries=Array.isArray(data)
+?data
+:(Array.isArray(data.entries)?data.entries:[])
+
+saveEntries(
+mergeEntries(loadEntries(),incomingEntries)
+)
+
+backupNote.textContent="Import successful"
+
+}catch{
+
+backupNote.textContent="Invalid file"
+
+}
+
+})
+
+</script>
 
 </body>
 </html>
