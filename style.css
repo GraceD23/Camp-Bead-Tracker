@@ -428,6 +428,10 @@ option{
   color:#AC00DE;
 }
 
+html, body{
+  min-height:100%;
+  background-color:#f4b6d3;
+}
 
 
 
