@@ -1,15 +1,20 @@
-// ===========================
-// Bead Tracker - app.js
-// Shared constants + storage + helpers + drawer behavior
-// ===========================
+// =============================
+// Camp Bead Tracker - app.js
+// =============================
 
-// ---- Storage keys ----
-const KEY_ENTRIES = "beadTimerEntries";
-const KEY_CURRENT_ORDER = "beadTimerCurrentOrder";
-const KEY_LAST_TASK = "beadTimerLastTask";
+const GITHUB_USERNAME = "GraceD23";
+const GITHUB_REPO = "Camp-Bead-Tracker";
+const GITHUB_BRANCH = "main";
+const GITHUB_DATA_PATH = "data/entries.json";
 
-// ---- Canonical task list (exact) ----
-const TASKS = [
+const KEY_ENTRIES = "cbt_entries";
+const KEY_TASKS = "cbt_tasks";
+const KEY_SETTINGS = "cbt_settings";
+const KEY_GITHUB_TOKEN = "cbt_github_token";
+const KEY_GITHUB_SHA = "cbt_github_sha";
+const KEY_ACTIVE_TIMER = "cbt_active_timer";
+
+const DEFAULT_TASKS = [
   "Airbrush",
   "Starter Coat",
   "Base Coat",
@@ -18,7 +23,6 @@ const TASKS = [
   "Detail (Side B)"
 ];
 
-// ---- Tasks that require bead count prompt after STOP ----
 const TASKS_REQUIRE_BEAD_COUNT = new Set([
   "Starter Coat",
   "Base Coat",
@@ -27,23 +31,100 @@ const TASKS_REQUIRE_BEAD_COUNT = new Set([
   "Detail (Side B)"
 ]);
 
-// ===========================
-// Formatting helpers
-// ===========================
-function pad2(n){ return String(n).padStart(2, "0"); }
-
-function formatDateMMDDYYYY(d){
-  const mm = pad2(d.getMonth() + 1);
-  const dd = pad2(d.getDate());
-  const yyyy = d.getFullYear();
-  return `${mm}/${dd}/${yyyy}`;
+// =============================
+// Basic helpers
+// =============================
+function pad2(n) {
+  return String(n).padStart(2, "0");
 }
 
-function formatTimeHHMMSS(d){
+function uniq(arr) {
+  return Array.from(new Set(arr));
+}
+
+function uuid() {
+  return `e_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function safeInt(v, d = 0) {
+  const n = parseInt(String(v ?? "").trim(), 10);
+  return Number.isFinite(n) ? n : d;
+}
+
+function formatDateMMDDYYYY(d) {
+  return `${pad2(d.getMonth() + 1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
+}
+
+function formatTimeHHMMSS(d) {
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 }
 
-function msToHMS(ms){
+function parseMMDDYYYY(s) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s || "").trim());
+  if (!m) return null;
+  return { mm: +m[1], dd: +m[2], yyyy: +m[3] };
+}
+
+function parseHMS(s) {
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(String(s || "").trim());
+  if (!m) return null;
+
+  const hh = +m[1];
+  const mm = +m[2];
+  const ss = m[3] ? +m[3] : 0;
+
+  if (hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59) return null;
+  return { hh, mm, ss };
+}
+
+function hmsToSeconds(h) {
+  return h.hh * 3600 + h.mm * 60 + h.ss;
+}
+
+function secondsToHMS(sec) {
+  sec = ((sec % 86400) + 86400) % 86400;
+  const hh = Math.floor(sec / 3600);
+  const mm = Math.floor((sec % 3600) / 60);
+  const ss = sec % 60;
+  return { hh, mm, ss };
+}
+
+function hmsStringFromSeconds(sec) {
+  const t = secondsToHMS(sec);
+  return `${pad2(t.hh)}:${pad2(t.mm)}:${pad2(t.ss)}`;
+}
+
+function to12h(s) {
+  const p = parseHMS(s);
+  if (!p) return s || "";
+
+  let h = p.hh;
+  const ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12;
+  if (h === 0) h = 12;
+
+  return `${h}:${pad2(p.mm)}${p.ss ? ":" + pad2(p.ss) : ""} ${ampm}`;
+}
+
+function parse12h(input) {
+  const s = String(input || "").trim().toUpperCase();
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/.exec(s);
+  if (!m) return null;
+
+  let hh = +m[1];
+  const mm = +m[2];
+  const ss = m[3] ? +m[3] : 0;
+  const ap = m[4];
+
+  if (hh < 1 || hh > 12 || mm > 59 || ss > 59) return null;
+
+  if (ap === "AM") hh = hh === 12 ? 0 : hh;
+  if (ap === "PM") hh = hh === 12 ? 12 : hh + 12;
+
+  return `${pad2(hh)}:${pad2(mm)}:${pad2(ss)}`;
+}
+
+function msToHMS(ms) {
   const totalSec = Math.max(0, Math.floor((ms || 0) / 1000));
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
@@ -51,182 +132,369 @@ function msToHMS(ms){
   return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
 }
 
-function msToHuman(ms){
+function msToHuman(ms) {
   const totalSec = Math.max(0, Math.floor((ms || 0) / 1000));
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
+
   if (h > 0) return `${h}h ${m}m`;
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
 }
 
-function safeParseInt(v, fallback = 0){
-  const n = Number.parseInt(String(v ?? "").trim(), 10);
-  return Number.isFinite(n) && n >= 0 ? n : fallback;
+function msToHoursMinutesWords(ms) {
+  const totalMin = Math.floor(Math.max(0, ms) / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return `${h} hours ${m} minutes`;
 }
 
-function uuid(){
-  return `e_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-}
-
-function todayMMDDYYYY(){
-  return formatDateMMDDYYYY(new Date());
-}
-
-function getYearFromMMDDYYYY(s){
-  const parts = String(s || "").split("/");
-  if (parts.length !== 3) return null;
-  const y = Number.parseInt(parts[2], 10);
-  return Number.isFinite(y) ? y : null;
-}
-
-// ===========================
-// Storage helpers
-// ===========================
-function loadEntries(){
-  try{
-    const raw = localStorage.getItem(KEY_ENTRIES);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  }catch{
+// =============================
+// Local storage
+// =============================
+function loadEntries() {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_ENTRIES) || "[]");
+  } catch {
     return [];
   }
 }
 
-function saveEntries(entries){
+function saveEntries(entries) {
   localStorage.setItem(KEY_ENTRIES, JSON.stringify(entries || []));
 }
 
-function addEntry(entry){
-  const entries = loadEntries();
-  entries.push(entry);
-  saveEntries(entries);
-  return entries;
-}
-
-function deleteEntryById(id){
-  const entries = loadEntries().filter(e => e.id !== id);
-  saveEntries(entries);
-  return entries;
-}
-
-function getCurrentOrder(){
-  return localStorage.getItem(KEY_CURRENT_ORDER) || "";
-}
-
-function setCurrentOrder(order){
-  localStorage.setItem(KEY_CURRENT_ORDER, String(order ?? "").trim());
-}
-
-function getLastTask(){
-  return localStorage.getItem(KEY_LAST_TASK) || "";
-}
-
-function setLastTask(task){
-  localStorage.setItem(KEY_LAST_TASK, String(task ?? ""));
-}
-
-// ===========================
-// Filtering + summarizing
-// ===========================
-function filterEntries({ year=null, order=null, task=null } = {}){
-  let entries = loadEntries();
-
-  if (year != null){
-    entries = entries.filter(e => getYearFromMMDDYYYY(e.date) === year);
+function getTasks() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(KEY_TASKS) || "[]");
+    return uniq([...DEFAULT_TASKS, ...stored.filter(Boolean).map(String)]);
+  } catch {
+    return [...DEFAULT_TASKS];
   }
-  if (order && order !== "__ALL__"){
-    entries = entries.filter(e => String(e.order) === String(order));
-  }
-  if (task && task !== "__ALL__"){
-    entries = entries.filter(e => String(e.task) === String(task));
-  }
-  return entries;
 }
 
-function summarize(entries){
-  const totalMs = entries.reduce((a,e) => a + (e.duration_ms || 0), 0);
-  const sessions = entries.length;
-  const longestMs = entries.reduce((m,e) => Math.max(m, e.duration_ms || 0), 0);
+function saveTasks(tasks) {
+  const merged = uniq([...DEFAULT_TASKS, ...(tasks || []).filter(Boolean).map(String)]);
+  localStorage.setItem(KEY_TASKS, JSON.stringify(merged));
+}
 
-  const byTaskMs = {};
-  const byTaskCount = {};
-  let totalBeads = 0;
+function addTask(task) {
+  const t = String(task || "").trim();
+  if (!t) return getTasks();
 
-  for (const e of entries){
-    const t = e.task || "Unknown";
-    byTaskMs[t] = (byTaskMs[t] || 0) + (e.duration_ms || 0);
-    byTaskCount[t] = (byTaskCount[t] || 0) + 1;
-    totalBeads += (Number.isFinite(e.bead_count) ? e.bead_count : 0);
+  const tasks = getTasks();
+  if (!tasks.includes(t)) tasks.push(t);
+  saveTasks(tasks);
+  return tasks;
+}
+
+function getSettings() {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_SETTINGS) || "{}");
+  } catch {
+    return {};
   }
+}
 
-  let mostUsedTask = "—";
-  let mostUsedMs = -1;
-  for (const [t, ms] of Object.entries(byTaskMs)){
-    if (ms > mostUsedMs){
-      mostUsedMs = ms;
-      mostUsedTask = t;
+function saveSettings(obj) {
+  localStorage.setItem(KEY_SETTINGS, JSON.stringify(obj || {}));
+}
+
+function getGitHubToken() {
+  return localStorage.getItem(KEY_GITHUB_TOKEN) || "";
+}
+
+function setGitHubToken(token) {
+  localStorage.setItem(KEY_GITHUB_TOKEN, String(token || "").trim());
+}
+
+function clearGitHubToken() {
+  localStorage.removeItem(KEY_GITHUB_TOKEN);
+  localStorage.removeItem(KEY_GITHUB_SHA);
+}
+
+function getActiveTimer() {
+  try {
+    return JSON.parse(localStorage.getItem(KEY_ACTIVE_TIMER) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function setActiveTimer(timerObj) {
+  localStorage.setItem(KEY_ACTIVE_TIMER, JSON.stringify(timerObj));
+}
+
+function clearActiveTimer() {
+  localStorage.removeItem(KEY_ACTIVE_TIMER);
+}
+
+// =============================
+// Entry merging
+// =============================
+function mergeEntries(existing, incoming) {
+  const map = new Map();
+
+  (existing || []).forEach(e => {
+    if (e && e.id) map.set(String(e.id), e);
+  });
+
+  (incoming || []).forEach(e => {
+    if (e && e.id && !map.has(String(e.id))) {
+      map.set(String(e.id), e);
     }
+  });
+
+  return Array.from(map.values()).sort((a, b) => {
+    const ka = `${a.date || ""} ${a.end_time || ""}`;
+    const kb = `${b.date || ""} ${b.end_time || ""}`;
+    return ka.localeCompare(kb);
+  });
+}
+
+// =============================
+// GitHub sync
+// =============================
+function githubApiUrl(path) {
+  return `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${path}`;
+}
+
+async function githubFetchEntries() {
+  const token = getGitHubToken();
+  if (!token) throw new Error("No GitHub token saved.");
+
+  const res = await fetch(githubApiUrl(GITHUB_DATA_PATH), {
+    headers: {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${token}`
+    }
+  });
+
+  if (!res.ok) {
+    throw new Error(`GitHub read failed (${res.status})`);
   }
 
-  const avgMs = sessions > 0 ? totalMs / sessions : 0;
+  const data = await res.json();
+  localStorage.setItem(KEY_GITHUB_SHA, data.sha || "");
+
+  const decoded = JSON.parse(atob((data.content || "").replace(/\n/g, "")));
 
   return {
-    totalMs,
-    sessions,
-    longestMs,
-    avgMs,
-    mostUsedTask,
-    byTaskMs,
-    byTaskCount,
-    totalBeads
+    sha: data.sha || "",
+    entries: Array.isArray(decoded.entries) ? decoded.entries : [],
+    tasks: Array.isArray(decoded.tasks) ? decoded.tasks : DEFAULT_TASKS
   };
 }
 
-// ===========================
-// Drawer (Hamburger menu)
-// iOS click-through fix: z-index handled in CSS, plus stopPropagation and scroll lock here.
-// ===========================
-function initDrawer(){
+async function githubPutEntries(payload) {
+  const token = getGitHubToken();
+  if (!token) throw new Error("No GitHub token saved.");
+
+  const currentSha = localStorage.getItem(KEY_GITHUB_SHA) || undefined;
+
+  const body = {
+    message: "Update Camp Bead Tracker data",
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2)))),
+    branch: GITHUB_BRANCH
+  };
+
+  if (currentSha) body.sha = currentSha;
+
+  const res = await fetch(githubApiUrl(GITHUB_DATA_PATH), {
+    method: "PUT",
+    headers: {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`GitHub write failed (${res.status}) ${txt}`);
+  }
+
+  const data = await res.json();
+  localStorage.setItem(KEY_GITHUB_SHA, data.content?.sha || "");
+  return data;
+}
+
+async function pullFromGitHub() {
+  const remote = await githubFetchEntries();
+  const mergedEntries = mergeEntries(loadEntries(), remote.entries);
+  saveEntries(mergedEntries);
+  saveTasks(remote.tasks || DEFAULT_TASKS);
+  return mergedEntries;
+}
+
+async function pushToGitHub() {
+  const entries = loadEntries();
+  const tasks = getTasks();
+
+  await githubPutEntries({
+    app: "Camp-Bead-Tracker",
+    updated_at: new Date().toISOString(),
+    entries,
+    tasks
+  });
+}
+
+async function syncPullThenPush() {
+  if (!getGitHubToken()) return { ok: false, reason: "no-token" };
+  await pullFromGitHub();
+  await pushToGitHub();
+  return { ok: true };
+}
+
+// =============================
+// Timer persistence
+// =============================
+function currentElapsedMs(active) {
+  if (!active) return 0;
+  if (active.isPaused) return Number(active.elapsedMs || 0);
+
+  const startMs = Number(active.startedAtMs || 0);
+  return Number(active.elapsedMs || 0) + Math.max(0, Date.now() - startMs);
+}
+
+function buildEntryFromActive(active, endMs, beadCount) {
+  const elapsed = active.isPaused
+    ? Number(active.elapsedMs || 0)
+    : Number(active.elapsedMs || 0) + Math.max(0, endMs - Number(active.startedAtMs || endMs));
+
+  const endDate = new Date(endMs);
+
+  return {
+    id: uuid(),
+    order: active.order,
+    task: active.task,
+    date: active.sessionDate || formatDateMMDDYYYY(endDate),
+    start_time: active.startTime || formatTimeHHMMSS(new Date(active.sessionStartMs || endMs)),
+    end_time: formatTimeHHMMSS(endDate),
+    duration_ms: elapsed,
+    bead_count: safeInt(beadCount, 0)
+  };
+}
+
+function startNewTimer(order, task) {
+  const now = Date.now();
+  const d = new Date(now);
+
+  const active = {
+    order: String(order || "").trim(),
+    task: String(task || "").trim(),
+    isPaused: false,
+    elapsedMs: 0,
+    startedAtMs: now,
+    sessionStartMs: now,
+    sessionDate: formatDateMMDDYYYY(d),
+    startTime: formatTimeHHMMSS(d)
+  };
+
+  setActiveTimer(active);
+  return active;
+}
+
+function pauseResumeTimer() {
+  const active = getActiveTimer();
+  if (!active) return null;
+
+  if (active.isPaused) {
+    active.isPaused = false;
+    active.startedAtMs = Date.now();
+  } else {
+    active.elapsedMs = currentElapsedMs(active);
+    active.isPaused = true;
+  }
+
+  setActiveTimer(active);
+  return active;
+}
+
+async function stopTimerAndSave(beadCount = 0) {
+  const active = getActiveTimer();
+  if (!active) return null;
+
+  const entry = buildEntryFromActive(active, Date.now(), beadCount);
+  clearActiveTimer();
+
+  const merged = mergeEntries(loadEntries(), [entry]);
+  saveEntries(merged);
+
+  try {
+    await syncPullThenPush();
+  } catch (e) {
+    // keep local save even if sync fails
+  }
+
+  return entry;
+}
+
+// =============================
+// Today summary
+// =============================
+function todayMMDDYYYY() {
+  return formatDateMMDDYYYY(new Date());
+}
+
+function computeTodayMs(entries, includeActive = true) {
+  const today = todayMMDDYYYY();
+
+  let ms = (entries || [])
+    .filter(e => e.date === today)
+    .reduce((a, e) => a + Number(e.duration_ms || 0), 0);
+
+  if (includeActive) {
+    const active = getActiveTimer();
+    if (active && active.sessionDate === today) {
+      ms += currentElapsedMs(active);
+    }
+  }
+
+  return ms;
+}
+
+// =============================
+// Drawer
+// =============================
+function initDrawer() {
   const btn = document.getElementById("btnMenu");
   const drawer = document.getElementById("drawer");
   const backdrop = document.getElementById("backdrop");
+
   if (!btn || !drawer || !backdrop) return;
 
-  function open(){
+  function open() {
     drawer.classList.add("open");
     backdrop.classList.add("open");
-    document.body.style.overflow = "hidden"; // lock background scroll (iOS)
+    document.body.style.overflow = "hidden";
   }
 
-  function close(){
+  function close() {
     drawer.classList.remove("open");
     backdrop.classList.remove("open");
-    document.body.style.overflow = ""; // restore scroll
+    document.body.style.overflow = "";
   }
 
-  // Prevent clicks/taps inside the drawer from bubbling to page content.
-  drawer.addEventListener("click", (e) => e.stopPropagation());
+  drawer.addEventListener("click", e => e.stopPropagation());
 
-  btn.addEventListener("click", (e) => {
+  btn.addEventListener("click", e => {
     e.stopPropagation();
     open();
   });
 
-  // Clicking the dimmed area closes menu.
-  backdrop.addEventListener("click", (e) => {
+  backdrop.addEventListener("click", e => {
     e.stopPropagation();
     close();
   });
 
-  // Close when selecting a link
   drawer.querySelectorAll("a").forEach(a => {
     a.addEventListener("click", close);
   });
 
-  // Escape to close (desktop convenience)
-  document.addEventListener("keydown", (e) => {
+  document.addEventListener("keydown", e => {
     if (e.key === "Escape") close();
   });
 }
