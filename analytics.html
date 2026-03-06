@@ -1,340 +1,193 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Analytics</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analytics</title>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <!-- SIDEBAR BACKDROP -->
-  <div class="backdrop" id="backdrop" aria-hidden="true"></div>
+<div class="backdrop" id="backdrop"></div>
 
-  <!-- SIDEBAR (PNG MENU) -->
-  <aside class="drawer" id="drawer" aria-label="Menu">
-    <div class="drawerEmoji">
-      <img src="assets/emojis.png" alt="">
-    </div>
-
-    <nav class="drawerMenu">
-      <a class="drawerBtn" href="index.html"><img src="assets/timer.png" alt="Timer"></a>
-      <a class="drawerBtn" href="entries.html"><img src="assets/entries.png" alt="Entries"></a>
-      <a class="drawerBtn" href="analytics.html"><img src="assets/analytics.png" alt="Analytics"></a>
-      <a class="drawerBtn" href="export.html"><img src="assets/export.png" alt="Export"></a>
-    </nav>
-  </aside>
-
-  <!-- PAGE CONTENT -->
-  <div class="container">
-
-    <div class="topbar">
-      <!-- menu trigger (simple button; you can swap to flower art later if you want) -->
-      <button class="btn" id="btnMenu" aria-label="Open menu">Menu</button>
-      <h1 class="title" style="margin:0;">Analytics</h1>
-      <div class="spacer44"></div>
-    </div>
-
-    <div class="card">
-      <div class="row">
-        <div class="field">
-          <label for="yearSelect">Year</label>
-          <select id="yearSelect"></select>
-        </div>
-
-        <div class="field">
-          <label for="orderSelect">Order</label>
-          <select id="orderSelect" disabled></select>
-        </div>
-      </div>
-
-      <p class="smallNote" id="summaryNote" style="margin-top:10px;"></p>
-    </div>
-
-    <div class="card" style="margin-top:12px;">
-      <h2 class="sectionTitle">Total Time by Task (Bar)</h2>
-      <canvas id="chartTime" width="700" height="320" style="width:100%;height:auto;"></canvas>
-    </div>
-
-    <div class="card" style="margin-top:12px;">
-      <h2 class="sectionTitle">Total Beads by Task (Bar)</h2>
-      <canvas id="chartBeads" width="700" height="320" style="width:100%;height:auto;"></canvas>
-    </div>
-
-    <div class="card" style="margin-top:12px;">
-      <h2 class="sectionTitle">Sessions by Task (Bar)</h2>
-      <canvas id="chartSessions" width="700" height="320" style="width:100%;height:auto;"></canvas>
-    </div>
-
+<aside class="drawer" id="drawer">
+  <div class="drawerEmoji">
+    <img src="assets/emojis.png">
   </div>
 
-  <script src="app.js"></script>
-  <script>
-    // -------- drawer wiring (uses your existing app.js function) --------
-    if (typeof initDrawer === "function") initDrawer();
+  <nav class="drawerMenu">
+    <a class="drawerBtn" href="index.html"><img src="assets/timer.png"></a>
+    <a class="drawerBtn" href="entries.html"><img src="assets/entries.png"></a>
+    <a class="drawerBtn" href="analytics.html"><img src="assets/analytics.png"></a>
+    <a class="drawerBtn" href="export.html"><img src="assets/export.png"></a>
+  </nav>
+</aside>
 
-    // -------- entry loading: use app.js if available, else fallback --------
-    function getEntriesSafe(){
-      if (typeof loadEntries === "function") return loadEntries();
+<div class="container">
 
-      // fallback keys (in case)
-      const keys = ["cbt_entries", "entries", "camp_bead_entries", "bead_entries"];
-      for (const k of keys){
-        try{
-          const raw = localStorage.getItem(k);
-          if (raw) return JSON.parse(raw);
-        }catch(e){}
-      }
-      return [];
-    }
+<div class="card" style="margin-top:10px">
 
-    function parseMMDDYYYY(s){
-      // expects "MM/DD/YYYY"
-      const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(s||"").trim());
-      if (!m) return null;
-      return { mm:+m[1], dd:+m[2], yyyy:+m[3] };
-    }
+<div class="row">
+<button class="btn" id="btnMenu">Menu</button>
+</div>
 
-    function msToHoursMinutes(ms){
-      const totalMin = Math.floor(Math.max(0, ms) / 60000);
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
-      return { h, m, totalMin };
-    }
+<div class="row" style="margin-top:10px">
 
-    function uniq(arr){
-      return Array.from(new Set(arr));
-    }
+<div class="field">
+<label>Year</label>
+<select id="yearSelect"></select>
+</div>
 
-    // -------- bar chart renderer (no external libs) --------
-    function drawBarChart(canvas, labels, values, valueFormatter){
-      const ctx = canvas.getContext("2d");
-      const W = canvas.width, H = canvas.height;
-      ctx.clearRect(0,0,W,H);
+<div class="field">
+<label>Order</label>
+<select id="orderSelect"></select>
+</div>
 
-      // padding
-      const padL = 70, padR = 18, padT = 14, padB = 56;
-      const plotW = W - padL - padR;
-      const plotH = H - padT - padB;
+</div>
 
-      const maxV = Math.max(1, ...values);
-      const n = Math.max(1, labels.length);
-      const gap = 10;
-      const barW = Math.max(12, Math.floor((plotW - gap*(n-1)) / n));
+</div>
 
-      // axes
-      ctx.globalAlpha = 0.35;
-      ctx.fillStyle = "#000";
-      ctx.fillRect(padL, padT + plotH, plotW, 2);
-      ctx.fillRect(padL, padT, 2, plotH + 2);
-      ctx.globalAlpha = 1;
+<div class="card chartCard" style="margin-top:12px">
 
-      // y ticks
-      ctx.font = "18px FromWhereYouAre, sans-serif";
-      ctx.fillStyle = "rgba(0,0,0,0.65)";
-      const ticks = 4;
-      for (let i=0;i<=ticks;i++){
-        const t = i/ticks;
-        const y = padT + plotH - t*plotH;
-        const v = Math.round(t*maxV);
-        ctx.globalAlpha = 0.18;
-        ctx.fillRect(padL, y, plotW, 1);
-        ctx.globalAlpha = 1;
-        ctx.fillText(String(v), 10, y + 6);
-      }
+<h2 class="sectionTitle">Total Time by Task</h2>
 
-      // bars
-      for (let i=0;i<labels.length;i++){
-        const v = values[i];
-        const x = padL + i*(barW+gap);
-        const h = (v/maxV) * plotH;
-        const y = padT + (plotH - h);
+<div id="chartRows"></div>
 
-        // bars use a default fill (you can later match your palette)
-        ctx.globalAlpha = 0.9;
-        ctx.fillStyle = "rgba(0,0,0,0.55)";
-        ctx.fillRect(x, y, barW, h);
-        ctx.globalAlpha = 1;
+</div>
 
-        // value label
-        const valText = valueFormatter ? valueFormatter(v) : String(v);
-        ctx.fillStyle = "rgba(0,0,0,0.75)";
-        ctx.fillText(valText, x, y - 6);
+</div>
 
-        // x label (rotate slightly for readability)
-        ctx.save();
-        ctx.translate(x + barW/2, padT + plotH + 22);
-        ctx.rotate(-0.35);
-        ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(0,0,0,0.75)";
-        ctx.fillText(labels[i], 0, 0);
-        ctx.restore();
-      }
-    }
+<script src="app.js"></script>
 
-    // -------- page logic --------
-    const yearSelect = document.getElementById("yearSelect");
-    const orderSelect = document.getElementById("orderSelect");
-    const summaryNote = document.getElementById("summaryNote");
+<script>
 
-    const chartTime = document.getElementById("chartTime");
-    const chartBeads = document.getElementById("chartBeads");
-    const chartSessions = document.getElementById("chartSessions");
+initDrawer()
 
-    const TASKS_FALLBACK = [
-      "Airbrush","Starter Coat","Base Coat","Laser","Detail (Side A)","Detail (Side B)"
-    ];
-    const TASKS_LIST = (typeof TASKS !== "undefined" && Array.isArray(TASKS) && TASKS.length)
-      ? TASKS
-      : TASKS_FALLBACK;
+const yearSelect=document.getElementById("yearSelect")
+const orderSelect=document.getElementById("orderSelect")
+const chartRows=document.getElementById("chartRows")
 
-    function refreshYearOptions(entries){
-      const years = uniq(
-        entries.map(e => parseMMDDYYYY(e.date)?.yyyy).filter(Boolean)
-      ).sort((a,b)=>b-a);
+function fillYearOptions(entries){
 
-      yearSelect.innerHTML = "";
-      if (!years.length){
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = "No data yet";
-        yearSelect.appendChild(opt);
-        yearSelect.disabled = true;
-        orderSelect.innerHTML = "";
-        orderSelect.disabled = true;
-        return;
-      }
+const years=[...new Set(entries.map(e=>{
+const p=parseMMDDYYYY(e.date)
+return p?p.yyyy:null
+}).filter(Boolean))].sort((a,b)=>b-a)
 
-      years.forEach(y=>{
-        const opt = document.createElement("option");
-        opt.value = String(y);
-        opt.textContent = String(y);
-        yearSelect.appendChild(opt);
-      });
+yearSelect.innerHTML=""
 
-      yearSelect.disabled = false;
-      yearSelect.value = String(years[0]);
-    }
+years.forEach(y=>{
+const opt=document.createElement("option")
+opt.value=y
+opt.textContent=y
+yearSelect.appendChild(opt)
+})
 
-    function refreshOrderOptions(entries, year){
-      const orders = uniq(
-        entries
-          .filter(e => parseMMDDYYYY(e.date)?.yyyy === year)
-          .map(e => String(e.order || "").trim())
-          .filter(Boolean)
-      ).sort((a,b)=>a.localeCompare(b));
+}
 
-      orderSelect.innerHTML = "";
-      if (!orders.length){
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = "No orders for year";
-        orderSelect.appendChild(opt);
-        orderSelect.disabled = true;
-        return;
-      }
+function fillOrderOptions(entries,year){
 
-      orders.forEach(o=>{
-        const opt = document.createElement("option");
-        opt.value = o;
-        opt.textContent = o;
-        orderSelect.appendChild(opt);
-      });
+const orders=[...new Set(entries
+.filter(e=>parseMMDDYYYY(e.date)?.yyyy===year)
+.map(e=>e.order)
+.filter(Boolean))].sort()
 
-      orderSelect.disabled = false;
-      orderSelect.value = orders[0];
-    }
+orderSelect.innerHTML=""
 
-    function computeMetrics(entries, year, order){
-      const filtered = entries.filter(e=>{
-        const p = parseMMDDYYYY(e.date);
-        if (!p) return false;
-        if (p.yyyy !== year) return false;
-        if (String(e.order||"").trim() !== order) return false;
-        return true;
-      });
+orders.forEach(o=>{
+const opt=document.createElement("option")
+opt.value=o
+opt.textContent=o
+orderSelect.appendChild(opt)
+})
 
-      const byTask = {};
-      TASKS_LIST.forEach(t=>{
-        byTask[t] = { ms:0, beads:0, sessions:0 };
-      });
+}
 
-      filtered.forEach(e=>{
-        const t = String(e.task||"").trim();
-        if (!byTask[t]) byTask[t] = { ms:0, beads:0, sessions:0 };
-        byTask[t].ms += Number(e.duration_ms||0);
-        byTask[t].beads += Number(e.bead_count||0);
-        byTask[t].sessions += 1;
-      });
+function renderChart(){
 
-      const labels = Object.keys(byTask);
-      const timeVals = labels.map(t => Math.round(byTask[t].ms/60000)); // minutes
-      const beadVals = labels.map(t => byTask[t].beads);
-      const sessVals = labels.map(t => byTask[t].sessions);
+const entries=loadEntries()
 
-      const totalMs = filtered.reduce((a,e)=>a+Number(e.duration_ms||0),0);
-      const totalBeads = filtered.reduce((a,e)=>a+Number(e.bead_count||0),0);
+const year=parseInt(yearSelect.value)
+const order=orderSelect.value
 
-      return { filteredCount: filtered.length, totalMs, totalBeads, labels, timeVals, beadVals, sessVals };
-    }
+const tasks=getTasks()
 
-    function refreshAll(){
-      const entries = getEntriesSafe();
-      refreshYearOptions(entries);
+const filtered=entries.filter(e=>{
+const y=parseMMDDYYYY(e.date)?.yyyy
+return y===year && e.order===order
+})
 
-      const year = parseInt(yearSelect.value, 10);
-      if (!year || yearSelect.disabled){
-        summaryNote.textContent = "No entries yet. Start the timer and stop to create sessions.";
-        drawBarChart(chartTime, [], [], null);
-        drawBarChart(chartBeads, [], [], null);
-        drawBarChart(chartSessions, [], [], null);
-        return;
-      }
+const totals={}
 
-      refreshOrderOptions(entries, year);
+tasks.forEach(t=>totals[t]=0)
 
-      const order = orderSelect.value;
-      if (!order || orderSelect.disabled){
-        summaryNote.textContent = "No orders found for that year.";
-        drawBarChart(chartTime, [], [], null);
-        drawBarChart(chartBeads, [], [], null);
-        drawBarChart(chartSessions, [], [], null);
-        return;
-      }
+filtered.forEach(e=>{
+totals[e.task]+=Number(e.duration_ms||0)
+})
 
-      const m = computeMetrics(entries, year, order);
-      const hm = msToHoursMinutes(m.totalMs);
+const max=Math.max(...Object.values(totals),1)
 
-      summaryNote.textContent =
-        `Order "${order}" in ${year}: ${hm.h} hours ${hm.m} minutes · ${m.totalBeads} beads · ${m.filteredCount} sessions`;
+chartRows.innerHTML=""
 
-      drawBarChart(
-        chartTime,
-        m.labels,
-        m.timeVals,
-        v => `${v}m`
-      );
+tasks.forEach(task=>{
 
-      drawBarChart(
-        chartBeads,
-        m.labels,
-        m.beadVals,
-        v => String(v)
-      );
+const ms=totals[task]
 
-      drawBarChart(
-        chartSessions,
-        m.labels,
-        m.sessVals,
-        v => String(v)
-      );
-    }
+if(ms<=0)return
 
-    yearSelect.addEventListener("change", refreshAll);
-    orderSelect.addEventListener("change", refreshAll);
+const row=document.createElement("div")
+row.className="barRow"
 
-    refreshAll();
-  </script>
+const percent=(ms/max)*100
+
+row.innerHTML=`
+<div class="taskLabel">${task}</div>
+<div class="barTrack">
+<div class="barFill" style="width:${percent}%"></div>
+</div>
+<div class="barValue">${msToHuman(ms)}</div>
+`
+
+chartRows.appendChild(row)
+
+})
+
+if(chartRows.innerHTML===""){
+chartRows.innerHTML=`<div class="smallNote">No data for this order</div>`
+}
+
+}
+
+function boot(){
+
+const entries=loadEntries()
+
+fillYearOptions(entries)
+
+if(yearSelect.value){
+fillOrderOptions(entries,parseInt(yearSelect.value))
+}
+
+renderChart()
+
+}
+
+yearSelect.addEventListener("change",()=>{
+const entries=loadEntries()
+fillOrderOptions(entries,parseInt(yearSelect.value))
+renderChart()
+})
+
+orderSelect.addEventListener("change",renderChart)
+
+if(getGitHubToken()){
+pullFromGitHub().then(boot).catch(boot)
+}else{
+boot()
+}
+
+</script>
+
 </body>
 </html>
